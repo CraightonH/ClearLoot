@@ -49,6 +49,7 @@ function A.MakeCard(parent)
     f.close=button(f,"×",25,function()
         if f.roll.finished then f.roll.dismissed=true; f.roll.pinned=false; A.Render() end
     end); f.close:SetPoint("TOPRIGHT",-8,-36)
+    f.bet=button(f,"Bet",35,function() A.OpenBets(f.roll) end)
     f.meta=text(f,11); f.meta:SetPoint("TOPLEFT",12,-56)
     f.timer=CreateFrame("StatusBar",nil,f); f.timer:SetPoint("TOPLEFT",12,-76)
     f.timer:SetPoint("TOPRIGHT",-12,-76); f.timer:SetHeight(3)
@@ -108,6 +109,9 @@ local function positionCard(f,db)
     f.notice:SetPoint("RIGHT",-12,0)
     f.result:ClearAllPoints(); f.result:SetPoint("BOTTOMLEFT",compact and 8 or 12,compact and 6 or 13)
     f.result:SetPoint("RIGHT",compact and -78 or -12,0); f.result:SetHeight(compact and 18 or 34)
+    f.bet:ClearAllPoints(); f.bet:SetPoint("BOTTOMRIGHT",-74,5); f.bet:SetSize(35,18)
+    f.bet:SetShown(db.betsEnabled)
+    if db.betsEnabled then f.result:ClearAllPoints(); f.result:SetPoint("BOTTOMLEFT",compact and 8 or 12,compact and 6 or 13); f.result:SetPoint("RIGHT",-118,0) end
     f.result:SetFont(STANDARD_TEXT_FONT,compact and 11 or 13,"")
 end
 function A.UpdateCard(f,r)
@@ -130,7 +134,7 @@ function A.UpdateCard(f,r)
         local allowed=(kind==0) or (r.allowed and r.allowed[kind])
         local show=(kind~=3 and kind~=4) or (r.allowed and r.allowed[kind])
         b:SetShown(not not show)
-        b:SetEnabled(not r.finished and not r.closed and not r.choice and left>0 and not not allowed)
+        b:SetEnabled(not r.finished and not r.closed and not r.choice and left>0 and not not allowed and not A.HoldLootForBets(r))
         b.reason=r.reasons and r.reasons[kind] or nil
     end
     -- Transmog takes Greed's slot; disenchant occupies a fourth slot when offered.
@@ -175,6 +179,7 @@ function A.UpdateCard(f,r)
     elseif r.closed or left==0 then result=db.compact and "Awaiting server result" or "Awaiting server result · outcome unconfirmed"
     elseif r.choice then result="Your choice: "..({[0]="Pass",[1]="Need",[2]="Greed",[3]="Disenchant",[4]="Transmog"})[r.choice]
     else result=db.compact and "Choose above" or "Choose above · results stay visible after you roll" end
+    if A.HoldLootForBets(r) then result="Betting open · loot choices held" end
     f.result:SetText(result); f.result:SetTextColor(r.status=="You won" and 0.45 or 0.85,0.88,0.8)
     local height=math.max(rowY,firstRowY+2*db.rowHeight)+(db.compact and 28 or 64)
     f:SetHeight(height); return height
@@ -290,7 +295,9 @@ function A.OpenSettings()
         local t=text(parent,12); t:SetPoint("LEFT",b,"RIGHT",5,0); t:SetText(title)
         b:SetScript("OnShow",function() b:SetChecked(A.db[key]) end)
         b:SetChecked(A.db[key]); b:SetScript("OnClick",function()
-            A.db[key]=not not b:GetChecked(); if A.ApplyNative then A.ApplyNative() end; A.Render()
+            if key=="betsEnabled" and A.betClient then A.betClient:SetEnabled(not not b:GetChecked())
+            else A.db[key]=not not b:GetChecked() end
+            if A.ApplyNative then A.ApplyNative() end; A.Render()
         end)
     end
     local function number(parent,key,title,y,min,max)
@@ -321,7 +328,9 @@ function A.OpenSettings()
     check(common,"compact","Compact panels (turn off for larger headers)",352)
     local preview=button(common,"Preview rolls",125,function() A.Demo() end); preview:SetPoint("TOPLEFT",20,-400)
     local history=button(common,"History / stats",125,function() A.OpenHistory("players") end); history:SetPoint("LEFT",preview,"RIGHT",10,0)
-    local tip=label(common,"Drag the window to move it. Pin a result to keep it.\n\nYellow bar: players are still choosing. Green: everyone chose.\nThe server may still be resolving the winner.\nPreview rolls never send real loot choices.",450); tip:SetWidth(440); tip:SetHeight(110)
+    check(common,"betsEnabled","Enable side bets (honor-system ledger only)",438)
+    local bets=button(common,"Side bets / ledger",160,function() A.OpenBets() end); bets:SetPoint("TOPLEFT",20,-478)
+    local tip=label(common,"Yellow bar: players still choosing. Green: everyone chose.\nThe server may still be resolving the winner.\nPreview rolls never send real loot choices.",520); tip:SetWidth(440); tip:SetHeight(90)
     number(advanced,"width","Window width",100,380,650)
     number(advanced,"rowHeight","Player row height",142,18,32)
     number(advanced,"fontSize","Player font size",184,10,18)

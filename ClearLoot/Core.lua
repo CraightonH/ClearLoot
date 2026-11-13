@@ -81,7 +81,7 @@ function A.Choose(r,kind)
         if kind==0 then r.rows[1].roll=nil else r.rows[1].roll=64 end
         A.Render(); return
     end
-    if r.finished or r.closed or r.choice or not r.allowed[kind] then return end
+    if r.finished or r.closed or r.choice or not r.allowed[kind] or A.HoldLootForBets(r) then return end
     local left=GetLootRollTimeLeft(r.id)
     if not left or left<=0 then return end
     -- RollOnLoot may ask for Blizzard's normal binding confirmation. Do not
@@ -173,6 +173,8 @@ events:SetScript("OnUpdate",function(_,dt)
         A.poll=(A.poll or 0)+0.25
         if A.poll>=1 then A.poll=0; A.RefreshHistory(); A.RefreshStatsIfVisible() end
     end
+    if A.betClient then A.betClient:Tick() end
+    if A.betWindow and A.betWindow:IsShown() then A.RenderBets() end
     A.Render()
 end)
 events:SetScript("OnEvent",function(_,event,...)
@@ -184,6 +186,7 @@ events:SetScript("OnEvent",function(_,event,...)
             C_LootHistory.GetSortedDropsForEncounter and C_LootHistory.GetSortedInfoForDrop and C_LootHistory.GetLootHistoryTime and
             GetLootRollItemInfo and GetLootRollItemLink and RollOnLoot
         A.BuildUI()
+        A.InitBetting()
         if compatible then
             for _,e in ipairs({"START_LOOT_ROLL","CANCEL_LOOT_ROLL","CANCEL_ALL_LOOT_ROLLS",
                 "LOOT_HISTORY_UPDATE_DROP","LOOT_HISTORY_UPDATE_ENCOUNTER","LOOT_HISTORY_CLEAR_HISTORY"}) do
@@ -206,6 +209,7 @@ events:SetScript("OnEvent",function(_,event,...)
             elseif cmd=="history" then A.OpenHistory("drops")
             elseif cmd=="stats" then A.OpenHistory("players")
             elseif cmd=="export" then A.OpenExport()
+            elseif cmd=="bets" then A.OpenBets()
             elseif cmd=="session" then A.historyView=not A.historyView; A.Render()
             elseif cmd=="native" then A.db.replaceNative=false; A.ApplyNative(); message("Default loot popups restored.")
             elseif cmd=="clear" then

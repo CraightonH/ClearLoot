@@ -2,7 +2,7 @@
 
 Compact group-loot panels and persistent roll history for **WoW Forever 1.60.1**, provisionally targeting Interface `16001`.
 
-**Status: 0.3.0 alpha.** The code has passed simulated model, history, UI, and browser checks. It has not been tested inside a running Forever client. The browser previews show the intended interface using illustrative data; they are not in-game screenshots.
+**Status: 0.4.0 alpha.** The code has passed simulated model, history, betting, UI, and browser checks. It has not been tested inside a running Forever client. The browser previews show the loot/history interface using illustrative data; they are not in-game screenshots and do not demonstrate networked side bets.
 
 ## Features
 
@@ -14,6 +14,7 @@ Compact group-loot panels and persistent roll history for **WoW Forever 1.60.1**
 - Persistent drop history with UTC timestamps, item, source, participant choices, rolls, and confirmed winner.
 - Per-character statistics: contested win rate, expected wins, win/loss streaks, solo wins, and total items won.
 - Manual alt/account labels, date and choice-tier filters, a searchable drop ledger, and CSV copying.
+- Optional, default-off side bets between enabled addon users, with a shared prediction book and persistent honor-payment ledger. No gold handling or trade automation.
 
 ## Install the alpha
 
@@ -29,7 +30,7 @@ You can also build an addon-only ZIP:
 python3 scripts/package.py
 ```
 
-This writes `dist/ClearLoot-0.3.0-alpha.zip`. Extract it into `Interface/AddOns/`.
+This writes `dist/ClearLoot-0.4.0-alpha.zip`. Extract it into `Interface/AddOns/`.
 
 ## Commands
 
@@ -40,6 +41,7 @@ This writes `dist/ClearLoot-0.3.0-alpha.zip`. Extract it into `Interface/AddOns/
 | `/cloot history` | Open persistent drop history |
 | `/cloot stats` | Open character statistics and manual aliases |
 | `/cloot export` | Open selectable CSV text for copying |
+| `/cloot bets` | Open side-bet rules, live predictions, and the honor ledger |
 | `/cloot session` | Show the current session's live-panel history |
 | `/cloot clear` | Dismiss completed panels |
 | `/cloot native` | Immediately restore the default loot popups |
@@ -57,6 +59,38 @@ Characters use GUIDs when supplied by the client and name-realm fallbacks otherw
 History records only group-loot rolls observed while the addon is running. The default retention is the newest **5,000 drops**, configurable from 100 to 50,000 in Advanced settings. Decreasing the limit prunes older records.
 
 Data is kept in account-level `ClearLootDB` SavedVariables and shared by your characters using the same WoW installation/account. The game saves it during normal logout or reload; a crash can lose unsaved changes. There is no cloud sync, retrospective collection, or automatic chat posting. Demo rolls never enter persistent statistics.
+
+## Optional side bets
+
+Side bets are **disabled by default**. They record pledges and who owes whom; they never reserve gold, check balances, collect stakes, open trades, or send payments. Settlement is on your honor.
+
+1. At least two eligible group members enable side bets in `/cloot` or `/cloot bets`. Other bettors need the addon; prediction targets do not.
+2. During a real, uniquely identified loot roll, one player opens `/cloot bets` (or clicks the item's **Bet** button) and chooses **Host betting window**. Hosting is manual; there is no automatic coordinator election.
+3. Participants choose a predicted loot winner, enter a gold pledge, and place their bet. The window shows the host's acknowledgement; an unacknowledged request is not an accepted bet. Each character can make one irrevocable accepted prediction per round. Retry resends the same pending request.
+4. The host locks the book at the window deadline, or the server-time cutoff if reached first. ClearLoot releases its own loot buttons. Players then choose Need/Greed/Pass normally.
+5. A confirmed result calculates honor-payment entries. Open **Ledger**, select the round, and review the accepted predictions and amounts owed. **Mark paid locally** is a local note, not verification of a transfer.
+
+The default rules are frozen for each round:
+
+| Rule | Default |
+| --- | --- |
+| Maximum eligible rollers who have chosen | **20%, inclusive** |
+| Reject new bets at server time remaining | **10 seconds or less** |
+| Betting window | 5 seconds |
+| Maximum pledge per character | 100 gold |
+| Default pledge | 5 gold |
+
+Need, Greed, Transmog, and Pass all count as choices. At exactly 20%, betting remains valid: 1 of 5, 2 of 10, 4 of 20, or 8 of 40 eligible rollers. The denominator comes from the matched loot-history participant list, not the whole raid roster. Crossing the threshold while the window is open voids the round; choices made after locking do not void it. Failed/unknown history and timers never enable betting.
+
+The host checks `GetLootRollTimeLeft(rollID)` and fresh loot history **when a request is received**, rather than trusting a remote timestamp. A new window needs more than `cutoff + window + 1` seconds remaining. The server's timer is never paused. The optional hold affects only ClearLoot's own buttons after a round is hosted; another UI, a macro, or a non-addon player can still roll immediately.
+
+Percentage, cutoff, window length, default pledge, and maximum pledge are configurable under **Rules**. The cutoff cannot be set below ten seconds. Bettors must match the host's percentage/cutoff/window settings and permit its pledge cap. Rules changed during a round apply only to later rounds. Pledges use copper precision and a hard limit of 1,000 gold per character.
+
+Correct predictors split the pledged pool proportionally to their stakes, including their own stakes. Copper remainders use a deterministic largest-remainder rule, then GUID order to break equal remainders. Only net honor payments are listed. Fewer than two accepted bettors, no correct predictions, or everyone passing cancels all pledges.
+
+The protocol uses the `ClearLootBets` prefix on the party/raid/instance-group addon channel, with sender-to-roster validation, versioned messages, bounded traffic, sequence replay, duplicate-request protection, and a locked-book checksum. Each bettor checks its own entry against the bet it actually submitted before acknowledging. The host requires bettor acknowledgements before publishing its locally verified winner; recipients also verify that winner against their own loot history. This coordinates consenting friends, not an escrow or tamper-proof gambling service.
+
+Missing messages can be replayed. Conflicting coordinators, changed eligible rosters, missing history, uncertain identical drops, interrupted/reloaded clients, and coordinator timeouts void the affected round rather than inventing a payout. Active rounds are not resumed across reloads. Each client keeps the newest 1,000 terminal/active round records in account-level `ClearLootDB.betLedger`; local paid notes survive normal logout/reload. If a settled round is later invalidated, outstanding entries are removed and any prior paid notes are retained for manual reconciliation. Network faults can require reconciling copies of the ledger between friends; no outside server enforces payment.
 
 ## Browser previews
 
@@ -82,16 +116,17 @@ Run the Lua checks with Lua 5.1 or 5.4 from the repository root:
 ```sh
 lua tests/model.lua
 lua tests/history.lua
+lua tests/betting.lua
 lua tests/integration.lua
 ```
 
 Or use `make test LUA=lua5.1`. On Linux with Python and `liblua5.4.so.0` installed, the included runner needs no Python packages:
 
 ```sh
-python3 tests/run_lua.py tests/model.lua tests/history.lua tests/integration.lua
+python3 tests/run_lua.py tests/model.lua tests/history.lua tests/betting.lua tests/integration.lua
 ```
 
-The suites cover 14 model scenarios, 12 history scenarios, and mocked addon integration, including choice progress, group sorting, duplicate-item ambiguity, late results, aliases, retention, and CSV escaping. GitHub Actions runs these against Lua 5.1 and 5.4 and verifies addon packaging.
+The suites cover 14 model scenarios, 12 history scenarios, 27 side-betting scenarios, and mocked addon integration. Betting checks include inclusive percentage boundaries, the native timer cutoff, immutable bets, exact settlement, two-peer and 40-peer synchronization, lost entries/results, missing acknowledgements, fabricated local pledges, disconnects, and reloads. Mocked game bindings verify group-message routing, the optional loot-button hold, and local paid notes. GitHub Actions runs these against Lua 5.1 and 5.4 and verifies addon packaging.
 
 Optional browser checks:
 
@@ -115,6 +150,8 @@ Forever's encounter loot history does not provide a documented direct mapping fr
 
 Before regular use, test real Need/Greed/Pass choices, binding confirmation acceptance and cancellation, wins and losses, ties, simultaneous and identical drops, all-pass outcomes, reloads during active rolls, persistence after logout/reload, and restoration with `/cloot native`. Gamepad mode keeps its native presentation. Mock tests do not verify in-game rendering, protected/taint behavior, or compatibility with other addons.
 
+For side bets, validate two real clients first: opt-in discovery, matching settings, host acknowledgement, both sides of the 20% boundary, the ten-second timer cutoff, button release, identical locked books, server-verified winners, and persistent ledger notes. Then test a raid, latency, disabling/reloading/disconnecting a participant, and ambiguous drops. Do not treat simulated networking as validation of the live client's addon channel behavior.
+
 The complete usage notes and source references are in [ClearLoot/README.txt](ClearLoot/README.txt).
 
 ## Source layout
@@ -123,6 +160,9 @@ The complete usage notes and source references are in [ClearLoot/README.txt](Cle
 | --- | --- |
 | `ClearLoot/Model.lua` | Roll state, matching, sorting, completion, and close timing |
 | `ClearLoot/History.lua` | Persistent records, identities, aliases, statistics, and CSV |
+| `ClearLoot/BetModel.lua` | Betting gates, immutable books, and exact honor settlements |
+| `ClearLoot/BetComms.lua` | Peer protocol, native timer/history bindings, and synchronization |
+| `ClearLoot/BetUI.lua` | Opt-in rules, predictions, and the persistent honor ledger |
 | `ClearLoot/UI.lua` | Loot panels and settings |
 | `ClearLoot/StatsUI.lua` | History, statistics, detail, and CSV windows |
 | `ClearLoot/Core.lua` | Game events and native loot UI integration |

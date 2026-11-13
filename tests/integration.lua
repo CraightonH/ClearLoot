@@ -58,8 +58,11 @@ C_LootHistory={GetLootHistoryTime=function() return now end,GetAllEncounterInfos
 for i=1,4 do _G["GroupLootFrame"..i]=CreateFrame("Frame",nil,UIParent) end
 assert(loadfile(base.."/Model.lua"))("ClearLoot",A)
 assert(loadfile(base.."/History.lua"))("ClearLoot",A)
+assert(loadfile(base.."/BetModel.lua"))("ClearLoot",A)
+assert(loadfile(base.."/BetComms.lua"))("ClearLoot",A)
 assert(loadfile(base.."/UI.lua"))("ClearLoot",A)
 assert(loadfile(base.."/StatsUI.lua"))("ClearLoot",A)
+assert(loadfile(base.."/BetUI.lua"))("ClearLoot",A)
 assert(loadfile(base.."/Core.lua"))("ClearLoot",A)
 local eventFrame=created[#created]
 eventFrame.scripts.OnEvent(eventFrame,"ADDON_LOADED","ClearLoot")
@@ -105,4 +108,54 @@ A.Render()
 assert(#A.db.lootArchive.records==recordedBefore,"demo rows must not enter persistent history")
 A.OpenHistory("players"); A.OpenHistory("drops"); A.RefreshStatsIfVisible(); A.OpenExport()
 assert(A.db.lootArchive and A.statsWindow and A.exportFrame)
-print("PASS integration: load, controls, all layouts, native restoration, duplicates, unknown outcomes, demo isolation")
+A.OpenBets(); A.betWindow.view="rules"; A.RenderBets(); A.betWindow.view="ledger"; A.RenderBets()
+assert(not A.db.betsEnabled and #A.db.betLedger.records==0)
+local participants={A="Alice",B="Bob"}
+local round=A.BetModel.New("test","A",{total=2,selected=0,leftMs=60000,participants=participants,
+    rosterKey=A.BetModel.RosterKey(participants),itemKey="item"},{percent=20,cutoff=10,window=5,maxStake=100},0)
+A.BetModel.Void(round,"few"); A.OpenBetRecord(round)
+-- Game bindings: current history, native milliseconds, authenticated group sender,
+-- and an optional hold on ClearLoot's own buttons. No external messages are sent.
+local nativeLeft=59999; local sent={}
+function UnitGUID(unit)
+    if unit=="player" then return "P1" end
+    local n=unit:match("^party(%d+)$"); return n and ("P"..(tonumber(n)+1)) or nil
+end
+function UnitFullName(unit) local guid=UnitGUID(unit); return guid and ("Player"..guid:sub(2)),"Realm" end
+function GetNumSubgroupMembers() return 4 end
+function IsInGroup() return true end
+function IsInRaid() return false end
+function GetLootRollTimeLeft() return nativeLeft end
+C_ChatInfo={RegisterAddonMessagePrefix=function() return true end,
+    SendAddonMessage=function(prefix,message,channel) sent[#sent+1]={prefix,message,channel}; return 0 end}
+local rolls={}
+for i=1,5 do rolls[i]={playerGUID="P"..i,playerName="Player"..i,playerClass="MAGE",state=i==2 and 0 or 4} end
+C_LootHistory.GetSortedInfoForDrop=function() return {rollInfos=rolls} end
+local real={id=99,key="verified",encounterID=1,lootListKey=99,name="Sword",link="item:42",allowed={[1]=true}}
+A.rolls={real}; A.InitBetting(); A.betClient:SetEnabled(true)
+local snapshot=A.BetSnapshot(real)
+assert(snapshot.total==5 and snapshot.selected==1 and snapshot.leftMs==59999)
+rolls[3].state=5; assert(A.BetSnapshot(real).selected==2); rolls[3].state=4
+local bf=A.betEventFrame
+bf.scripts.OnEvent(bf,"CHAT_MSG_ADDON","ClearLootBets","HELLO|1|peer","WHISPER","Player2-Realm")
+assert(not A.betClient.peers.P2,"only group distributions are accepted")
+bf.scripts.OnEvent(bf,"CHAT_MSG_ADDON","ClearLootBets","HELLO|1|peer","PARTY","Player2-Realm")
+assert(A.betClient.peers.P2)
+local betRound=assert(A.betClient:Start(real))
+local previousCalls=calls
+A.Choose(real,1); assert(calls==previousCalls and A.HoldLootForBets(real))
+nativeLeft=54000; A.betClient:Tick()
+assert(betRound.state=="VOID" and betRound.reason=="few" and not A.HoldLootForBets(real))
+A.Choose(real,1); assert(calls==previousCalls+1)
+A.OpenBets(real); A.RenderBets()
+for _,packet in ipairs(sent) do assert(packet[1]=="ClearLootBets" and packet[3]=="PARTY" and #packet[2]<=255) end
+local ledgerSnapshot={total=2,selected=0,leftMs=60000,participants=participants,
+    rosterKey=A.BetModel.RosterKey(participants),itemKey="item"}
+local payable=assert(A.BetModel.New("pay","A",ledgerSnapshot,{percent=20,cutoff=10,window=5,maxStake=100},0))
+A.BetModel.Accept(payable,ledgerSnapshot,"A","A",100,"a")
+A.BetModel.Accept(payable,ledgerSnapshot,"B","B",100,"b")
+A.BetModel.Lock(payable,2,A.BetModel.Digest(payable)); A.BetModel.Settle(payable,"A")
+A.OpenBetRecord(payable); local detail=A.betDetail
+detail.rows[1].mark.scripts.OnClick()
+assert(payable.paidLocally[1] and A.betDetail==detail,"paid notes must remain local and reuse the detail frame")
+print("PASS integration: addon UI, native controls, history, demo isolation, live betting bindings, button hold/release, local paid notes")
