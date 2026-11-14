@@ -1,0 +1,13 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <!-- Keep Blizzard's artwork and child layout, but do not register live loot
+         events or run its roll API scripts for these addon-owned previews. -->
+    <Frame name="LootGoblinDemoLootFrameTemplate" inherits="MKBGroupLootFrameTemplate" virtual="true" hidden="true">
+        <Scripts>
+            <OnLoad>self.lootGoblinDemo = true;</OnLoad>
+            <OnShow>return;</OnShow>
+            <OnHide>return;</OnHide>
+            <OnEvent>return;</OnEvent>
+            <OnUpdate>return;</OnUpdate>
+        </Scripts>
+    </Frame>
+</Ui>

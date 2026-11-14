@@ -5,8 +5,10 @@ local function label(parent,size)
 end
 local function panel(parent)
     local f=CreateFrame("Frame",nil,parent,"BackdropTemplate")
-    f:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
-    f:SetBackdropColor(0.045,0.06,0.085,1); f:SetBackdropBorderColor(0.3,0.35,0.4,1)
+    f:SetBackdrop({bgFile="Interface\\FrameGeneral\\UI-Background-Rock",
+        edgeFile="Interface\\DialogFrame\\UI-DialogBox-Border",edgeSize=24,
+        insets={left=6,right=6,top=6,bottom=6}})
+    f:SetBackdropColor(0.12,0.11,0.09,1); f:SetBackdropBorderColor(1,1,1,1)
     f:SetFrameStrata("FULLSCREEN_DIALOG"); f:SetClampedToScreen(true); return f
 end
 local function button(parent,text,width,fn)
@@ -21,7 +23,7 @@ end
 function A.OpenExport(filter)
     if A.exportFrame then A.exportFrame:Hide() end
     local f=panel(UIParent); A.exportFrame=f; f:SetSize(720,500); f:SetPoint("CENTER"); movable(f)
-    local title=label(f,14); title:SetPoint("TOPLEFT",16,-16); title:SetText("ClearLoot · copy CSV (Ctrl+A, Ctrl+C)")
+    local title=label(f,14); title:SetPoint("TOPLEFT",16,-16); title:SetText("LootGoblin · copy CSV (Ctrl+A, Ctrl+C)")
     local close=button(f,"Close",65,function() f:Hide() end); close:SetPoint("TOPRIGHT",-12,-12)
     local scroll=CreateFrame("ScrollFrame",nil,f,"UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT",16,-54); scroll:SetPoint("BOTTOMRIGHT",-34,16)
@@ -60,7 +62,7 @@ function A.OpenHistory(view)
     if not A.statsWindow then
         local f=panel(UIParent); A.statsWindow=f; f:SetSize(820,570); f:SetPoint("CENTER"); movable(f)
         f.view="players"; f.days=0; f.choice="All"; f.groupAliases=false; f.query=""; f.rows={}
-        f.title=label(f,15); f.title:SetPoint("TOPLEFT",16,-16); f.title:SetText("ClearLoot · history and roll statistics")
+        f.title=label(f,15); f.title:SetPoint("TOPLEFT",16,-16); f.title:SetText("LootGoblin · history and roll statistics")
         local close=button(f,"Close",65,function() f:Hide() end); close:SetPoint("TOPRIGHT",-12,-12)
         local players=button(f,"Players",85,function() f.view="players"; f.page=1; A.RenderStats() end); players:SetPoint("TOPLEFT",16,-50)
         local drops=button(f,"Drops",75,function() f.view="drops"; f.page=1; A.RenderStats() end); drops:SetPoint("LEFT",players,"RIGHT",6,0)

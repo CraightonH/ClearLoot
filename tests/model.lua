@@ -1,6 +1,6 @@
 local A={}
-local base=os.getenv("CLEARLOOT_ADDON") or "ClearLoot"
-assert(loadfile(base.."/Model.lua"))("ClearLoot",A)
+local base=os.getenv("LOOTGOBLIN_ADDON") or "LootGoblin"
+assert(loadfile(base.."/Model.lua"))("LootGoblin",A)
 local total=0
 local function test(name,fn) fn(); total=total+1; print("PASS "..name) end
 local function new(id,link,time) return A.NewRoll(id,link or "item:a",time or 10,60,time or 10) end
@@ -89,5 +89,17 @@ test("choice groups stay Need, Greed, Pass, Waiting regardless of winner",functi
     local rows=A.SortedRows(r,A.InitDB({}))
     assert(rows[1].state==0 and rows[2].state==3 and rows[3].state==5 and rows[4].state==4)
     assert(A.RollGroup(0)==A.RollGroup(1))
+end)
+test("name sorting stays within choice priority groups",function()
+    local r=new(1); r.rows={{state=5,playerName="A"},{state=3,playerName="B",roll=100},
+        {state=0,playerName="Z",roll=1},{state=0,playerName="C",roll=2},{state=4,playerName="D"}}
+    local rows=A.SortedRows(r,A.InitDB({sort="name"}))
+    assert(rows[1].playerName=="C" and rows[2].playerName=="Z")
+    assert(rows[3].state==3 and rows[4].state==5 and rows[5].state==4)
+end)
+test("saved loot positions reject invalid coordinates",function()
+    local db=A.InitDB({lootPositions={[1]={x=120,y=-90},[2]={x=0/0,y=1},[3]={x="bad",y=1},[4]={x=math.huge,y=0}}})
+    assert(db.lootPositions[1].x==120 and db.lootPositions[1].y==-90)
+    assert(not db.lootPositions[2] and not db.lootPositions[3] and not db.lootPositions[4])
 end)
 print(total.." model scenarios passed")

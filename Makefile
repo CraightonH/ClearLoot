@@ -5,6 +5,7 @@ PYTHON ?= python3
 test:
 	$(LUA) tests/model.lua
 	$(LUA) tests/history.lua
+	$(LUA) tests/betting.lua
 	$(LUA) tests/integration.lua
 
 package:

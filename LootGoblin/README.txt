@@ -1,19 +1,53 @@
-ClearLoot 0.3.0-alpha
+LootGoblin 0.7.0-alpha
 
-A standalone group-loot addon targeting WoW Forever 1.60.1 (Interface 16001).
+A native group-loot extension targeting WoW Forever 1.60.1 (Interface 16001).
 The exact client build has not been confirmed. This is an alpha, checked with
 simulated WoW APIs, not tested inside a running game client.
 
 INSTALL
 
 1. Close WoW, or return to the character selection screen.
-2. Extract the ClearLoot folder into your Forever client's Interface/AddOns/.
-   The final path should be Interface/AddOns/ClearLoot/ClearLoot.toc.
-3. Enable ClearLoot in the AddOns list. Disable other group-loot frame replacements
+2. Extract the LootGoblin folder into your Forever client's Interface/AddOns/.
+   The final path should be Interface/AddOns/LootGoblin/LootGoblin.toc.
+3. Enable LootGoblin in the AddOns list. Disable other group-loot frame replacements
    such as BetterGroupLoot while evaluating this alpha.
-4. Enter the game and run /cloot demo. No party is required.
-5. Run /cloot for settings. If you want the default popups back, /cloot native
+4. Enter the game and run /lg demo. No party is required.
+5. Run /lg for settings. If you want the default popups back, /lg native
    restores them immediately and saves that preference.
+
+NATIVE PRESENTATION (0.7.0)
+
+Settings are under Options > AddOns > LootGoblin; /lg opens that category.
+The default mode extends Blizzard's original loot frames with a player table.
+The native item header, buttons, timer, and binding confirmations stay in use.
+A confirmed winner receives a full gold row highlight. When the native popup
+closes or is reused, its table moves to the result window until the configured
+timeout. Native spacing expands for tables and restores when disabled; spacing
+changes defer during combat. Standalone panels remain optional in settings.
+/lg native selects Blizzard UI only. History collection continues.
+Restart the client after updating to load the corrected XML template.
+/lg demo uses Forever's MKBGroupLootFrameTemplate, its LootButtonContainer,
+and Blizzard's GroupLootContainer_AddFrame layout in an independent container
+with the same attached tables. Need/Greed/Pass simulate choices; results resolve
+in about ten seconds. Preview scripts never submit real rolls or save statistics.
+Run the command again to reset the preview. Dismissal works as usual.
+The addon cannot create a server-side dungeon drop or inject server events.
+Missing native templates report an error; there is no standalone fallback.
+Use a real party drop to test server events, binding prompts, and frame reuse.
+The browser previews still illustrate the earlier standalone layout.
+
+Drag the native item header, item icon, or player table to move an individual
+native loot panel and its table. Loot buttons keep their normal click actions. The four slot positions are shared by demo and live rolls and
+saved across reloads. Lock window position disables dragging. Advanced > Reset
+position clears the saved slots. There is no Pin button.
+Need always precedes Greed, then Pass, then Waiting. Name sorting stays within
+choice tiers. Transmog, when offered, sits between Need and Greed.
+
+Confirmed personal wins pulse green around the whole loot panel; losses pulse
+red. Three pulses fade to a quieter outline until the result closes. Passes,
+all-pass outcomes, and unknown results do not trigger win/loss effects.
+
+The remaining panel/layout notes apply to optional standalone mode.
 
 USE
 
@@ -35,7 +69,7 @@ Default player sorting groups Need above Greed, then Pass, with undecided player
 last. Transmog, when applicable, sits between Need and Greed. Roll numbers sort
 descending within each roll type. Group boundaries have horizontal separators
 and a small gap. Winners are marked without moving them above higher-priority
-choice groups. Advanced settings can disable separators or sort by name.
+choice groups. Advanced settings can disable separators or sort names within each choice tier.
 Blizzard still handles binding confirmations; the addon never confirms them
 automatically. A choice is considered confirmed after history or confirmation
 reports it. The addon never rolls automatically on real items.
@@ -51,11 +85,11 @@ highest numeric roll, missing win toast, or expired timer is never treated as
 proof of losing. A Greed 99 can lose to a Need 2.
 
 Panels stay through the roll and for 20 seconds after a confirmed result.
-Hovering postpones closing; Pin keeps an item open indefinitely. Set the result
+Hovering postpones closing. Set the result
 timeout to 0 to keep all results until dismissed. The live-panel session view
 resets on reload. Persistent drop history is separate and survives normal
-logout/reload through account-level ClearLootDB SavedVariables.
-Pinned and live panels are not evicted by the session panel limit.
+logout/reload through account-level LootGoblinDB SavedVariables.
+Live panels are not evicted by the session panel limit.
 
 PERSISTENT HISTORY AND STATISTICS
 
@@ -93,7 +127,7 @@ record limit (100 to 50,000) in Advanced; reducing it prunes the oldest records.
 There is no cloud sync or cross-account collection. The account-level file is
 shared by your characters using this installation and WoW account. The game
 writes SavedVariables during normal logout/reload; a crash can lose unsaved data.
-Back up WTF/Account/<your account>/SavedVariables/ClearLoot.lua if desired.
+Back up WTF/Account/<your account>/SavedVariables/LootGoblin.lua if desired.
 No retrospective or unobserved drops are fabricated, and demo rolls are excluded.
 If an identical drop invalidates an earlier association, its archived record is
 marked uncertain and removed from rate calculations. Late confirmed results
@@ -113,24 +147,59 @@ These defaults are recommendations, not measured popularity rankings.
 
 COMMANDS
 
-/cloot              Open settings
-/cloot demo         Three simulated rolls, including win/loss examples
-/cloot history      Open persistent drop history
-/cloot stats        Open player statistics and manual alt aliases
-/cloot export       Copy retained raw drop/participant history as CSV
-/cloot session      Toggle the current live-panel session view
-/cloot clear        Dismiss completed results; leave live items alone
-/cloot native       Restore default loot popups
-/clearloot          Same commands as /cloot
+/lg              Open settings
+/lg demo         Three simulated rolls, including win/loss examples
+/lg history      Open persistent drop history
+/lg stats        Open player statistics and manual alt aliases
+/lg export       Copy retained raw drop/participant history as CSV
+/lg bets         Side-bet honor ledger and rules
+/lg session      Toggle the current live-panel session view
+/lg clear        Dismiss completed results; leave live items alone
+/lg native       Restore default loot popups
+/lootgoblin          Same commands as /lg
+
+SIDE BETS: PLACE A PREDICTION AND WATCH THE POOL
+
+Click 1g, 5g, or 10g beside a player in the loot table to immediately bet that
+amount on that player. Edit Middle bet directly on the item panel to customize
+the middle button. Your prediction and pool remain on the panel. /lg bets
+opens only the ledger and rules; there is no separate betting menu. Demo bets
+are local simulations and never enter the ledger or addon messaging. No manual host, invitation,
+confirmation/retry step, matched settings, or five-second hosted window is needed.
+Loot choices are never delayed. A bettor resolves the shared pool automatically.
+
+Each client validates its own placement: <=20% of eligible rollers selected,
+more than 10 seconds remaining, reliable item/roster data, and a positive pledge
+within its personal cap. Stricter personal limits do not require friends to
+change settings. Valid notifications may arrive after the cutoff; their original
+placement facts are used rather than arrival-time choices or a host approval.
+
+The earlier threshold-void rule remains for open pools that have not yet agreed.
+Once a pool is shared and agreed, later normal choices do not void it. The timer
+cutoff stops new submissions without discarding valid earlier bets.
+
+Correct bettors share the pledged pool proportionally; the ledger records net
+amounts owed. No gold is collected or moved, no balances are checked, and no
+trades are opened. Local paid marks are only notes. Late valid notifications can
+revise a pool, retaining prior paid notes separately for manual reconciliation.
+
+Protocol version 2 automatically merges author-attributed bet notifications,
+shares book checksums, requests replays, and elects a connected bettor to resolve.
+Interrupted pools retain their predictions as Waiting to reconcile. Turning
+friend notifications off does not withdraw a placed bet. Version 1 clients need
+to be updated. Remote submission facts are honor-system statements, not server
+receipts; this module is intended for cooperating friends.
+
+See docs/betting.md in the repository for the full workflow and protocol.
 
 KNOWN LIMITS AND VERIFICATION
 
 Forever uses encounter loot history instead of the old Classic GetItem /
 GetPlayerInfo API. Its history states differ from RollOnLoot button numbers.
-ClearLoot uses the modern history API and explicit mappings.
+LootGoblin uses the modern history API and explicit mappings.
 
 No documented API maps a rollID directly to its encounter/drop identity.
-ClearLoot accepts only unique item-link matches with start times within four
+LootGoblin accepts only unique item-link matches with start times within four
 seconds. It never guesses duplicate-item order. Identical items arriving within
 eight seconds invalidate an earlier speculative association; player details
 then show as uncertain. This favors accurate attribution over complete data.
@@ -143,20 +212,20 @@ winner reopens the panel and starts a fresh result timeout.
 
 Unknown APIs leave the native loot interface intact. Gamepad mode also keeps
 its native presentation; this alpha targets mouse/keyboard. During reloads,
-native rolls without a ClearLoot record remain visible. Live-roll reconstruction
+native rolls without a LootGoblin record remain visible. Live-roll reconstruction
 is not implemented. Completed persistent drop history is retained across reloads.
 
 Before treating this as ready for regular play, validate on your actual client:
 * /run print(GetBuildInfo()) -- expected Interface number 16001.
-* /cloot demo, then switch all three layouts and resize/reposition.
+* /lg demo, then switch all three layouts and resize/reposition.
 * A real party drop: one Need, one Greed, one Pass, and one delayed choice.
 * Bind-on-pickup confirmation acceptance AND cancellation.
 * A win, a loss, all pass, a tie, simultaneous different items, identical drops.
 * Reload during an active roll; confirm native controls remain available.
-* /cloot native restores native popups and mouse input.
+* /lg native restores native popups and mouse input.
 
-Validation delivered with this alpha: 14 model scenarios, 12 persistent-history
-scenarios, and a mocked runtime
+Validation delivered with this alpha: 16 model scenarios, 12 persistent-history
+scenarios, 28 asynchronous betting scenarios, and a mocked runtime
 integration check exercising UI loading, controls, all layouts, native restore,
 duplicates, unknown outcomes, demo isolation, compact height, group separators,
 and the completion bar's yellow/green behavior. History scenarios cover persistent
@@ -166,6 +235,9 @@ CSV quoting/formula neutralization, and demo exclusion. These checks run using a
 system Lua 5.4 shared library. Production code uses Lua 5.1-compatible syntax.
 Mock checks cannot establish in-game API behavior, protected/taint behavior,
 actual font rendering, or compatibility with other addons.
+Side bets also require real two-client and raid testing of placement, live
+pool notifications, history/timer gates, automatic agreement/resolution, message
+latency, normal loot controls, resolver failover, and persistence. Browser previews do not validate the side-bet protocol.
 
 SOURCE REFERENCES
 
@@ -175,4 +247,4 @@ https://github.com/Karl-HeinzSchneider/WoW-BetterGroupLoot/blob/main/BetterGroup
 https://github.com/Gethe/wow-ui-source/blob/live/Interface/AddOns/Blizzard_APIDocumentationGenerated/LootHistoryDocumentation.lua
 https://github.com/Gethe/wow-ui-source/blob/live/Interface/AddOns/Blizzard_UIPanels_Game/Mainline/GroupLootFrame.lua
 
-ClearLoot is a separate implementation, not a modified BetterGroupLoot release.
+LootGoblin is a separate implementation, not a modified BetterGroupLoot release.

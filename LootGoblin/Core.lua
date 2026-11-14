@@ -2,7 +2,7 @@ local addonName,A=...
 A.rolls={}; A.byID={}
 local events=CreateFrame("Frame")
 local compatible=false
-local function message(s) print("|cff73c7ffClearLoot:|r "..s) end
+local function message(s) print("|cff73c7ffLootGoblin:|r "..s) end
 local function readItem(r)
     local texture,name,count,quality,bop,need,greed,de,rn,rg,rd,skill,transmog=GetLootRollItemInfo(r.id)
     r.texture=texture; r.name=name; r.link=GetLootRollItemLink(r.id) or r.link
@@ -48,14 +48,14 @@ end
 -- presentation, and restore it immediately when replacement is disabled.
 function A.ApplyNative()
     local gamepad=InputUtil and InputUtil.IsGamepadUIEnabled and InputUtil.IsGamepadUIEnabled()
-    local hide=compatible and A.db and A.db.replaceNative and not gamepad
+    local hide=compatible and A.db and A.db.presentation=="custom" and A.db.replaceNative and not gamepad
     local function visit(frame,conceal)
         if not frame then return end
         if conceal then
-            if frame.clearLootMouse==nil then frame.clearLootMouse=frame:IsMouseEnabled() and 1 or 0 end
+            if frame.lootGoblinMouse==nil then frame.lootGoblinMouse=frame:IsMouseEnabled() and 1 or 0 end
             frame:EnableMouse(false)
-        elseif frame.clearLootMouse~=nil then
-            frame:EnableMouse(frame.clearLootMouse==1); frame.clearLootMouse=nil
+        elseif frame.lootGoblinMouse~=nil then
+            frame:EnableMouse(frame.lootGoblinMouse==1); frame.lootGoblinMouse=nil
         end
         for _,child in ipairs({frame:GetChildren()}) do visit(child,conceal) end
     end
@@ -66,15 +66,16 @@ function A.ApplyNative()
             -- a custom record exists. Never hide an untracked roll.
             local conceal=hide and f.rollID and A.byID[f.rollID]~=nil
             if conceal then
-                if not f.clearLootAlpha then f.clearLootAlpha=f:GetAlpha() end
+                if not f.lootGoblinAlpha then f.lootGoblinAlpha=f:GetAlpha() end
                 f:SetAlpha(0)
-            elseif f.clearLootAlpha then f:SetAlpha(f.clearLootAlpha); f.clearLootAlpha=nil end
+            elseif f.lootGoblinAlpha then f:SetAlpha(f.lootGoblinAlpha); f.lootGoblinAlpha=nil end
             visit(f,conceal)
         end
     end
 end
 function A.Choose(r,kind)
     if r.demo then
+        if r.finished or r.dismissed or r.choice then return end
         r.choice=kind
         local map={[0]=5,[1]=0,[2]=3,[3]=3,[4]=2}
         r.rows[1].state=map[kind]
@@ -115,12 +116,14 @@ local function startRoll(id,duration)
     C_Timer.After(0.6,function() A.RefreshHistory(); A.Render(); A.ApplyNative() end)
 end
 function A.Demo()
+    A.demoGeneration=(A.demoGeneration or 0)+1
+    local generation=A.demoGeneration
     for i=#A.rolls,1,-1 do if A.rolls[i].demo then table.remove(A.rolls,i) end end
     local samples={{"Emberstone Staff","Interface\\Icons\\INV_Staff_13"},
         {"Cobalt Ring","Interface\\Icons\\INV_Jewelry_Ring_03"},
         {"Gilded Mantle","Interface\\Icons\\INV_Shoulder_02"}}
     for i,s in ipairs(samples) do
-        local r=A.NewRoll(-i,nil,GetTime(),60,nil); r.name=s[1]; r.texture=s[2]; r.demo=true
+        local r=A.NewRoll(-i,nil,GetTime(),60,nil); r.name=s[1]; r.texture=s[2]; r.demo=true; r.nativeDemo=true
         r.allowed={[0]=true,[1]=true,[2]=true}
         r.rows={{playerName="You",isSelf=true,playerClass="MAGE",state=4},
             {playerName="Thorn",playerClass="WARRIOR",state=0,roll=87},
@@ -130,6 +133,7 @@ function A.Demo()
         r.waiting=2; r.match=nil
         A.rolls[#A.rolls+1]=r
         C_Timer.After(8+i,function()
+            if generation~=A.demoGeneration then return end
             local d={rollInfos=A.Copy(r.rows)}
             d.rollInfos[1].state=({[0]=5,[1]=0,[2]=3,[3]=3,[4]=2})[r.choice] or 0
             if r.choice==0 then d.rollInfos[1].roll=nil
@@ -141,7 +145,11 @@ function A.Demo()
         end)
     end
     A.historyView=false; A.Render()
-    message("Preview: three simulated items. Results resolve in about ten seconds.")
+    if A.demoTemplateWarning then
+        message("0.7.0: native dungeon-roll demo failed; see the error above. No fallback window was opened.")
+    else
+        message("0.7.0 dungeon-roll demo: Forever native frames and client layout; simulated choices/results. No real loot is created.")
+    end
 end
 local elapsed=0
 events:SetScript("OnUpdate",function(_,dt)
@@ -173,17 +181,22 @@ events:SetScript("OnUpdate",function(_,dt)
         A.poll=(A.poll or 0)+0.25
         if A.poll>=1 then A.poll=0; A.RefreshHistory(); A.RefreshStatsIfVisible() end
     end
+    if A.betClient then A.betClient:Tick() end
+    if A.betWindow and A.betWindow:IsShown() then A.RenderBets() end
     A.Render()
 end)
 events:SetScript("OnEvent",function(_,event,...)
     if event=="ADDON_LOADED" then
         local name=...; if name~=addonName then return end
-        ClearLootDB=A.InitDB(ClearLootDB); A.db=ClearLootDB
+        LootGoblinDB=A.InitDB(LootGoblinDB); A.db=LootGoblinDB
         A.InitHistory(A.db)
         compatible=C_LootHistory and C_LootHistory.GetAllEncounterInfos and
             C_LootHistory.GetSortedDropsForEncounter and C_LootHistory.GetSortedInfoForDrop and C_LootHistory.GetLootHistoryTime and
             GetLootRollItemInfo and GetLootRollItemLink and RollOnLoot
         A.BuildUI()
+        A.InitBetting()
+        A.RegisterSettings()
+        A.InitNativeUI()
         if compatible then
             for _,e in ipairs({"START_LOOT_ROLL","CANCEL_LOOT_ROLL","CANCEL_ALL_LOOT_ROLLS",
                 "LOOT_HISTORY_UPDATE_DROP","LOOT_HISTORY_UPDATE_ENCOUNTER","LOOT_HISTORY_CLEAR_HISTORY"}) do
@@ -198,16 +211,17 @@ events:SetScript("OnEvent",function(_,event,...)
                 local f=_G["GroupLootFrame"..i]
                 if f then f:HookScript("OnShow",function() A.ApplyNative() end) end
             end
-        else message("This client has an unsupported loot API. Default loot UI remains available; /cloot demo shows the preview.") end
-        SLASH_CLEARLOOT1="/cloot"; SLASH_CLEARLOOT2="/clearloot"
-        SlashCmdList.CLEARLOOT=function(input)
+        else message("This client has an unsupported loot API. Default loot UI remains available; /lg demo shows the preview.") end
+        SLASH_LOOTGOBLIN1="/lg"; SLASH_LOOTGOBLIN2="/lootgoblin"
+        SlashCmdList.LOOTGOBLIN=function(input)
             local cmd=(input or ""):lower():match("^%s*(%S+)")
             if cmd=="demo" then A.Demo()
             elseif cmd=="history" then A.OpenHistory("drops")
             elseif cmd=="stats" then A.OpenHistory("players")
             elseif cmd=="export" then A.OpenExport()
+            elseif cmd=="bets" then A.OpenBets()
             elseif cmd=="session" then A.historyView=not A.historyView; A.Render()
-            elseif cmd=="native" then A.db.replaceNative=false; A.ApplyNative(); message("Default loot popups restored.")
+            elseif cmd=="native" then A.db.presentation="none"; A.db.replaceNative=false; A.ApplyNative(); A.Render(); message("Default loot popups restored.")
             elseif cmd=="clear" then
                 for _,r in ipairs(A.rolls) do if r.finished then r.dismissed=true; r.pinned=false end end; A.Render()
             else A.OpenSettings() end

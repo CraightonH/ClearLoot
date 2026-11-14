@@ -1,0 +1,16 @@
+## Interface: 16001
+## Title: LootGoblin
+## Notes: Native loot tables, roll history, and optional honor-ledger side bets.
+## Author: LootGoblin contributors
+## Version: 0.7.0-alpha
+## SavedVariables: LootGoblinDB
+Model.lua
+History.lua
+BetModel.lua
+BetComms.lua
+UI.lua
+StatsUI.lua
+BetUI.lua
+Demo.xml
+NativeUI.lua
+Core.lua
