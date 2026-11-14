@@ -1,14 +1,15 @@
 local _,A=...
 local M={}; A.BetModel=M
-M.states={OPEN="Betting open",AWAITING_LOCK="Confirming bets",LOCKED="Bets locked",SETTLED="Payments calculated",VOID="Voided"}
+M.PERCENT=20; M.CUTOFF=10
+M.states={OPEN="Bets arriving",LOCKED="Bets shared",UNRESOLVED="Waiting to reconcile",SETTLED="Payments calculated",VOID="Voided"}
 M.reasons={data="Timer or eligible-player history unavailable",threshold="More than the allowed percentage have chosen",
     timer="Server-time cutoff reached",window="Betting window closed",short="Too little time for a betting window",
     roster="Eligible players changed",finished="Loot roll already finished",duplicate="One accepted bet per character",
     target="Unknown prediction target",stake="Stake is outside this round's limit",peers="Another enabled ClearLoot player is needed",
-    rules="Betting settings do not match the host",host="Coordinator left, reloaded, or timed out",
+    rules="Friends are using different betting rules",host="Waiting for another bettor to resolve",
     sync="Bet book could not be synchronized",ambiguous="Loot association is uncertain",interrupted="Interrupted by reload",
     few="Fewer than two accepted bettors",none="Nobody predicted the winner; pledges cancelled",allpass="Everyone passed",
-    conflict="Conflicting betting coordinators",disabled="A participant disabled betting",cancel="Voided by coordinator"}
+    conflict="Conflicting predictions from one character",disabled="Betting is disabled",cancel="Voided"}
 local function integer(n,max)
     return type(n)=="number" and n==n and n>=0 and n<=max and n==math.floor(n)
 end
@@ -30,56 +31,76 @@ function M.Available(snapshot,percent)
     return true
 end
 function M.CanBet(round,snapshot)
-    if round.state~="OPEN" then return false,"window" end
+    if round.state=="VOID" or round.state=="SETTLED" then return false,"window" end
     local ok,reason=M.Available(snapshot,round.percent); if not ok then return false,reason end
     if snapshot.rosterKey~=round.rosterKey then return false,"roster" end
     if snapshot.finished then return false,"finished" end
     if not integer(snapshot.leftMs,3600000) then return false,"data" end
     if snapshot.leftMs<=round.cutoff*1000 then return false,"timer" end
-    if snapshot.leftMs<=round.closeRemaining then return false,"window" end
     return true
 end
 function M.New(id,host,snapshot,rules,timestamp)
     local ok,reason=M.Available(snapshot,rules.percent); if not ok then return nil,reason end
     if snapshot.finished then return nil,"finished" end
-    if not integer(rules.cutoff,30) or rules.cutoff<10 or not integer(rules.window,20) or rules.window<2 or
+    if not integer(rules.cutoff,30) or rules.cutoff<10 or
         not integer(rules.maxStake,10000000) or rules.maxStake<1 then return nil,"rules" end
-    if not integer(snapshot.leftMs,3600000) or snapshot.leftMs<=(rules.cutoff+rules.window+1)*1000 then return nil,"short" end
+    if not integer(snapshot.leftMs,3600000) or snapshot.leftMs<=rules.cutoff*1000 then return nil,"timer" end
     return {id=id,host=host,state="OPEN",percent=rules.percent,cutoff=rules.cutoff,maxStake=rules.maxStake,
-        closeRemaining=math.floor(snapshot.leftMs-rules.window*1000),rosterKey=snapshot.rosterKey,itemKey=snapshot.itemKey,
+        closeRemaining=rules.cutoff*1000,rosterKey=snapshot.rosterKey,itemKey=snapshot.itemKey,
         participants=A.Copy(snapshot.participants),entries={},timestamp=timestamp,paidLocally={}}
 end
 function M.Accept(round,snapshot,bettor,target,stake,nonce)
     local ok,reason=M.CanBet(round,snapshot); if not ok then return nil,reason end
     if not round.participants[bettor] or not round.participants[target] then return nil,"target" end
     if not integer(stake,round.maxStake) or stake<1 then return nil,"stake" end
-    for _,e in ipairs(round.entries) do
-        if e.bettor==bettor then
-            if e.nonce==nonce and e.target==target and e.stake==stake then return e end
-            return nil,"duplicate"
-        end
-    end
-    local e={seq=#round.entries+1,bettor=bettor,target=target,stake=stake,nonce=nonce}
-    round.entries[#round.entries+1]=e; return e
+    local e={bettor=bettor,target=target,stake=stake,nonce=nonce,selected=snapshot.selected,remaining=snapshot.leftMs}
+    local merged,why=M.Merge(round,e)
+    if not merged then return nil,why end
+    for _,entry in ipairs(round.entries) do if entry.bettor==bettor then return entry end end
 end
 function M.Digest(round)
-    local lines={round.id,round.host,round.rosterKey,round.itemKey,tostring(round.closeRemaining),tostring(round.percent),tostring(round.cutoff),tostring(round.maxStake)}
-    for _,e in ipairs(round.entries) do
-        lines[#lines+1]=table.concat({e.seq,e.bettor,e.target,e.stake,e.nonce},",")
+    local lines={"2",round.rosterKey,round.itemKey,tostring(round.percent),tostring(round.cutoff)}
+    local entries={}; for _,e in ipairs(round.entries) do entries[#entries+1]=e end
+    table.sort(entries,function(a,b) return a.bettor<b.bettor end)
+    for _,e in ipairs(entries) do
+        lines[#lines+1]=table.concat({e.bettor,e.target,e.stake,e.nonce,e.selected,e.remaining},",")
     end
     return M.Hash(table.concat(lines,";"))
 end
-function M.ApplyEntry(round,e)
-    if not integer(e.seq,40) or e.seq<1 or not round.participants[e.bettor] or not round.participants[e.target] or
-        not integer(e.stake,round.maxStake) or e.stake<1 or type(e.nonce)~="string" or #e.nonce>64 then return false,"data" end
-    if e.seq<=#round.entries then
-        local old=round.entries[e.seq]
-        return old.bettor==e.bettor and old.target==e.target and old.stake==e.stake and old.nonce==e.nonce,"conflict"
+function M.Merge(round,e)
+    if not round.participants[e.bettor] or not round.participants[e.target] or
+        not integer(e.stake,10000000) or e.stake<1 or type(e.nonce)~="string" or #e.nonce>64 then return false,"data" end
+    local allowed,reason=M.Available({total=#M.ParticipantIDs(round),selected=e.selected},round.percent)
+    if not allowed then return false,reason end
+    if not integer(e.remaining,3600000) or e.remaining<=round.cutoff*1000 then return false,"timer" end
+    for _,old in ipairs(round.entries) do
+        if old.bettor==e.bettor then
+            if old.target==e.target and old.stake==e.stake and old.nonce==e.nonce and old.selected==e.selected and old.remaining==e.remaining then return true,"duplicate" end
+            return false,"conflict"
+        end
     end
-    if round.digest then return false,"conflict" end
-    if e.seq~=#round.entries+1 then return false,"sync" end
-    for _,old in ipairs(round.entries) do if old.bettor==e.bettor then return false,"duplicate" end end
-    round.entries[#round.entries+1]=A.Copy(e); return true
+    if round.state=="VOID" then return false,"window" end
+    if round.state=="SETTLED" then
+        if next(round.paidLocally or {}) then
+            round.priorPayments=A.Copy(round.payments or {}); round.priorPaidLocally=A.Copy(round.paidLocally); round.reconcile=true
+        end
+        round.paidLocally={}
+        round.state="LOCKED"
+    end
+    round.entries[#round.entries+1]=A.Copy(e)
+    table.sort(round.entries,function(a,b) return a.bettor<b.bettor end)
+    round.pool=0
+    for i,entry in ipairs(round.entries) do entry.seq=i; round.pool=round.pool+entry.stake end
+    round.digest=nil; round.payments=nil; round.balances=nil; round.winner=nil
+    return true
+end
+function M.ParticipantIDs(round)
+    local ids={}; for guid in pairs(round.participants) do ids[#ids+1]=guid end; table.sort(ids); return ids
+end
+function M.Resolver(round,connected)
+    local candidates={}
+    for _,e in ipairs(round.entries) do if connected[e.bettor] then candidates[#candidates+1]=e.bettor end end
+    table.sort(candidates); return candidates[1]
 end
 function M.Lock(round,count,digest)
     if round.state=="VOID" or round.state=="SETTLED" then return false,"window" end
@@ -88,7 +109,7 @@ function M.Lock(round,count,digest)
 end
 function M.Void(round,reason)
     if round.payments and #round.payments>0 and round.paidLocally and next(round.paidLocally) then
-        round.priorPayments=A.Copy(round.payments); round.reconcile=true
+        round.priorPayments=A.Copy(round.payments); round.priorPaidLocally=A.Copy(round.paidLocally); round.reconcile=true
     end
     round.state="VOID"; round.reason=reason; round.payments={}; round.balances={}
 end

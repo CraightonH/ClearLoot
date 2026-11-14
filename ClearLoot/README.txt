@@ -1,4 +1,4 @@
-ClearLoot 0.4.0-alpha
+ClearLoot 0.5.0-alpha
 
 A standalone group-loot addon targeting WoW Forever 1.60.1 (Interface 16001).
 The exact client build has not been confirmed. This is an alpha, checked with
@@ -124,59 +124,37 @@ COMMANDS
 /cloot native       Restore default loot popups
 /clearloot          Same commands as /cloot
 
-OPTIONAL SIDE BETS (DISABLED BY DEFAULT)
+SIDE BETS: PLACE A PREDICTION AND WATCH THE POOL
 
-Enable side bets in Common settings or /cloot bets. At least two eligible group
-members must enable the module. One person manually hosts the current real roll's
-betting window; others pick a predicted winner and a positive gold pledge.
-The default window is five seconds. Percentage, cutoff, window, default pledge,
-and maximum pledge are configurable under Rules and frozen per round.
+Click Bet on an item, choose the predicted loot winner, enter a stake, and Place
+bet. That click records the bet immediately and joins the pool. Friends' bets and
+the pool update as their notifications arrive. No manual host, invitation,
+confirmation/retry step, matched settings, or five-second hosted window is needed.
+Loot choices are never delayed. A bettor resolves the shared pool automatically.
 
-Betting is valid while chosen / eligible <= 20%, inclusively: 1/5, 2/10, 4/20,
-or 8/40. Need, Greed, Transmog, and Pass count as choices. The eligible participant
-list comes from the matched loot history, not an assumed party/raid size.
-Exceeding the percentage while a window is open voids that round. Choices after
-the book is locked do not invalidate it. An already finished roll cannot open or
-complete an open betting window just because its timer reads zero.
+Each client validates its own placement: <=20% of eligible rollers selected,
+more than 10 seconds remaining, reliable item/roster data, and a positive pledge
+within its personal cap. Stricter personal limits do not require friends to
+change settings. Valid notifications may arrive after the cutoff; their original
+placement facts are used rather than arrival-time choices or a host approval.
 
-GetLootRollTimeLeft is checked at request receipt. New bets are rejected when
-10 seconds or less remain (this configurable cutoff cannot go below 10).
-A new round needs more than cutoff + window + 1 seconds remaining. Unknown
-history, unknown timer values, or ambiguous drops never enable bets.
+The earlier threshold-void rule remains for open pools that have not yet agreed.
+Once a pool is shared and agreed, later normal choices do not void it. The timer
+cutoff stops new submissions without discarding valid earlier bets.
 
-ClearLoot's own loot buttons are held only during a valid hosted betting window.
-The server countdown continues, and other addons, macros, and non-addon players
-can still submit loot choices. This is a cooperative delay, not a server pause.
+Correct bettors share the pledged pool proportionally; the ledger records net
+amounts owed. No gold is collected or moved, no balances are checked, and no
+trades are opened. Local paid marks are only notes. Late valid notifications can
+revise a pool, retaining prior paid notes separately for manual reconciliation.
 
-Each bettor has one irrevocable accepted prediction per round. A pending request
-is not accepted until its entry is acknowledged by the coordinator. Retry uses
-the original request identity. The locked book must be acknowledged by its
-bettors before the coordinator publishes a locally verified winner; receiving
-clients also verify the loot winner against their own game history.
+Protocol version 2 automatically merges author-attributed bet notifications,
+shares book checksums, requests replays, and elects a connected bettor to resolve.
+Interrupted pools retain their predictions as Waiting to reconcile. Turning
+friend notifications off does not withdraw a placed bet. Version 1 clients need
+to be updated. Remote submission facts are honor-system statements, not server
+receipts; this module is intended for cooperating friends.
 
-Correct bettors split the pledged pool proportionally to stakes, including their
-own stakes. Copper rounding is deterministic and conserves the pool. The ledger
-lists net amounts owed. Fewer than two bettors, nobody guessing correctly, and
-all-pass results cancel pledges. Maximum configurable stake: 1,000 gold.
-
-There is no gold collection, balance checking, trade assistance, or automatic
-payment. Follow-through is on your honor. Mark paid locally is only a local note.
-Real character identities are used; account aliases do not identify a payee.
-
-Addon peers use a versioned ClearLootBets prefix on party, raid, or instance-group
-addon messages. The module validates senders against the live roster, rate-limits
-messages, and can replay missing entries/results. Reloads, disconnects, unknown
-results, changed eligible lists, and conflicting coordinators fail closed.
-Checksums and acknowledgements coordinate trusted friends; they are not escrow
-or protection against a deliberately modified coordinator.
-
-SavedVariables retains the newest 1,000 side-bet rounds, protecting active rounds
-when pruning. Active rounds are voided on reload, not resumed. Completed ledgers
-and local paid notes survive normal logout/reload. Later invalidation removes
-payable obligations and retains prior paid notes for manual reconciliation.
-Network faults can still require friends to reconcile their local ledger copies.
-
-See the repository README for the complete side-bet workflow and validation list.
+See docs/betting.md in the repository for the full workflow and protocol.
 
 KNOWN LIMITS AND VERIFICATION
 
@@ -211,7 +189,7 @@ Before treating this as ready for regular play, validate on your actual client:
 * /cloot native restores native popups and mouse input.
 
 Validation delivered with this alpha: 14 model scenarios, 12 persistent-history
-scenarios, 27 side-betting scenarios, and a mocked runtime
+scenarios, 28 asynchronous betting scenarios, and a mocked runtime
 integration check exercising UI loading, controls, all layouts, native restore,
 duplicates, unknown outcomes, demo isolation, compact height, group separators,
 and the completion bar's yellow/green behavior. History scenarios cover persistent
@@ -221,9 +199,9 @@ CSV quoting/formula neutralization, and demo exclusion. These checks run using a
 system Lua 5.4 shared library. Production code uses Lua 5.1-compatible syntax.
 Mock checks cannot establish in-game API behavior, protected/taint behavior,
 actual font rendering, or compatibility with other addons.
-Side bets also require real two-client and raid testing of discovery, live
-history/timer gates, locked books, message latency, button holds, disconnects,
-and persistence. Browser previews do not validate the side-bet protocol.
+Side bets also require real two-client and raid testing of placement, live
+pool notifications, history/timer gates, automatic agreement/resolution, message
+latency, normal loot controls, resolver failover, and persistence. Browser previews do not validate the side-bet protocol.
 
 SOURCE REFERENCES
 

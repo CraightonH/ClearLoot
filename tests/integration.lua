@@ -109,13 +109,13 @@ assert(#A.db.lootArchive.records==recordedBefore,"demo rows must not enter persi
 A.OpenHistory("players"); A.OpenHistory("drops"); A.RefreshStatsIfVisible(); A.OpenExport()
 assert(A.db.lootArchive and A.statsWindow and A.exportFrame)
 A.OpenBets(); A.betWindow.view="rules"; A.RenderBets(); A.betWindow.view="ledger"; A.RenderBets()
-assert(not A.db.betsEnabled and #A.db.betLedger.records==0)
+assert(#A.db.betLedger.records==0)
 local participants={A="Alice",B="Bob"}
 local round=A.BetModel.New("test","A",{total=2,selected=0,leftMs=60000,participants=participants,
     rosterKey=A.BetModel.RosterKey(participants),itemKey="item"},{percent=20,cutoff=10,window=5,maxStake=100},0)
 A.BetModel.Void(round,"few"); A.OpenBetRecord(round)
 -- Game bindings: current history, native milliseconds, authenticated group sender,
--- and an optional hold on ClearLoot's own buttons. No external messages are sent.
+-- and normal loot choices during asynchronous betting. No external messages are sent.
 local nativeLeft=59999; local sent={}
 function UnitGUID(unit)
     if unit=="player" then return "P1" end
@@ -137,17 +137,25 @@ local snapshot=A.BetSnapshot(real)
 assert(snapshot.total==5 and snapshot.selected==1 and snapshot.leftMs==59999)
 rolls[3].state=5; assert(A.BetSnapshot(real).selected==2); rolls[3].state=4
 local bf=A.betEventFrame
-bf.scripts.OnEvent(bf,"CHAT_MSG_ADDON","ClearLootBets","HELLO|1|peer","WHISPER","Player2-Realm")
-assert(not A.betClient.peers.P2,"only group distributions are accepted")
-bf.scripts.OnEvent(bf,"CHAT_MSG_ADDON","ClearLootBets","HELLO|1|peer","PARTY","Player2-Realm")
-assert(A.betClient.peers.P2)
-local betRound=assert(A.betClient:Start(real))
+local notification=table.concat({"BET","2",snapshot.itemKey,snapshot.rosterKey,snapshot.deadline,"peer","P3",100,1,59999,20,10},"|")
+bf.scripts.OnEvent(bf,"CHAT_MSG_ADDON","ClearLootBets",notification,"WHISPER","Player2-Realm")
+assert(not A.betClient.byRoll[real],"only group distributions are accepted")
+A.OpenBets(real)
+A.betWindow.target.scripts.OnClick()
+A.betWindow.targetMenu.rows[3].scripts.OnClick()
+assert(A.betWindow.targetGUID=="P3")
+A.betWindow.stake:SetText("0.1")
+A.betWindow.submit.scripts.OnClick()
+local betRound=A.betClient.byRoll[real].record
+assert(betRound.pool==1000 and #betRound.entries==1)
+bf.scripts.OnEvent(bf,"CHAT_MSG_ADDON","ClearLootBets",notification,"PARTY","Player2-Realm")
+assert(betRound.pool==1100 and #betRound.entries==2)
 local previousCalls=calls
-A.Choose(real,1); assert(calls==previousCalls and A.HoldLootForBets(real))
+A.Choose(real,1); assert(calls==previousCalls+1,"betting must not delay normal loot choices")
 nativeLeft=54000; A.betClient:Tick()
-assert(betRound.state=="VOID" and betRound.reason=="few" and not A.HoldLootForBets(real))
-A.Choose(real,1); assert(calls==previousCalls+1)
 A.OpenBets(real); A.RenderBets()
+assert(not A.betWindow.host and not A.betWindow.enable,"betting must not require hosting or participation controls")
+assert(A.betWindow.submit.text=="Bet placed" and A.betWindow.pool.text:find("2 bets",1,true))
 for _,packet in ipairs(sent) do assert(packet[1]=="ClearLootBets" and packet[3]=="PARTY" and #packet[2]<=255) end
 local ledgerSnapshot={total=2,selected=0,leftMs=60000,participants=participants,
     rosterKey=A.BetModel.RosterKey(participants),itemKey="item"}
@@ -158,4 +166,4 @@ A.BetModel.Lock(payable,2,A.BetModel.Digest(payable)); A.BetModel.Settle(payable
 A.OpenBetRecord(payable); local detail=A.betDetail
 detail.rows[1].mark.scripts.OnClick()
 assert(payable.paidLocally[1] and A.betDetail==detail,"paid notes must remain local and reuse the detail frame")
-print("PASS integration: addon UI, native controls, history, demo isolation, live betting bindings, button hold/release, local paid notes")
+print("PASS integration: addon UI, native controls, history, demo isolation, asynchronous bets, live pool, no hosting/hold, local paid notes")

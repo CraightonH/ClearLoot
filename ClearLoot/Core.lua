@@ -81,7 +81,7 @@ function A.Choose(r,kind)
         if kind==0 then r.rows[1].roll=nil else r.rows[1].roll=64 end
         A.Render(); return
     end
-    if r.finished or r.closed or r.choice or not r.allowed[kind] or A.HoldLootForBets(r) then return end
+    if r.finished or r.closed or r.choice or not r.allowed[kind] then return end
     local left=GetLootRollTimeLeft(r.id)
     if not left or left<=0 then return end
     -- RollOnLoot may ask for Blizzard's normal binding confirmation. Do not
