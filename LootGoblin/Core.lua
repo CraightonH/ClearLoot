@@ -2,7 +2,7 @@ local addonName,A=...
 A.rolls={}; A.byID={}
 local events=CreateFrame("Frame")
 local compatible=false
-local function message(s) print("|cff73c7ffClearLoot:|r "..s) end
+local function message(s) print("|cff73c7ffLootGoblin:|r "..s) end
 local function readItem(r)
     local texture,name,count,quality,bop,need,greed,de,rn,rg,rd,skill,transmog=GetLootRollItemInfo(r.id)
     r.texture=texture; r.name=name; r.link=GetLootRollItemLink(r.id) or r.link
@@ -52,10 +52,10 @@ function A.ApplyNative()
     local function visit(frame,conceal)
         if not frame then return end
         if conceal then
-            if frame.clearLootMouse==nil then frame.clearLootMouse=frame:IsMouseEnabled() and 1 or 0 end
+            if frame.lootGoblinMouse==nil then frame.lootGoblinMouse=frame:IsMouseEnabled() and 1 or 0 end
             frame:EnableMouse(false)
-        elseif frame.clearLootMouse~=nil then
-            frame:EnableMouse(frame.clearLootMouse==1); frame.clearLootMouse=nil
+        elseif frame.lootGoblinMouse~=nil then
+            frame:EnableMouse(frame.lootGoblinMouse==1); frame.lootGoblinMouse=nil
         end
         for _,child in ipairs({frame:GetChildren()}) do visit(child,conceal) end
     end
@@ -66,9 +66,9 @@ function A.ApplyNative()
             -- a custom record exists. Never hide an untracked roll.
             local conceal=hide and f.rollID and A.byID[f.rollID]~=nil
             if conceal then
-                if not f.clearLootAlpha then f.clearLootAlpha=f:GetAlpha() end
+                if not f.lootGoblinAlpha then f.lootGoblinAlpha=f:GetAlpha() end
                 f:SetAlpha(0)
-            elseif f.clearLootAlpha then f:SetAlpha(f.clearLootAlpha); f.clearLootAlpha=nil end
+            elseif f.lootGoblinAlpha then f:SetAlpha(f.lootGoblinAlpha); f.lootGoblinAlpha=nil end
             visit(f,conceal)
         end
     end
@@ -178,7 +178,7 @@ end)
 events:SetScript("OnEvent",function(_,event,...)
     if event=="ADDON_LOADED" then
         local name=...; if name~=addonName then return end
-        ClearLootDB=A.InitDB(ClearLootDB); A.db=ClearLootDB
+        LootGoblinDB=A.InitDB(LootGoblinDB); A.db=LootGoblinDB
         A.InitHistory(A.db)
         compatible=C_LootHistory and C_LootHistory.GetAllEncounterInfos and
             C_LootHistory.GetSortedDropsForEncounter and C_LootHistory.GetSortedInfoForDrop and C_LootHistory.GetLootHistoryTime and
@@ -198,9 +198,9 @@ events:SetScript("OnEvent",function(_,event,...)
                 local f=_G["GroupLootFrame"..i]
                 if f then f:HookScript("OnShow",function() A.ApplyNative() end) end
             end
-        else message("This client has an unsupported loot API. Default loot UI remains available; /cloot demo shows the preview.") end
-        SLASH_CLEARLOOT1="/cloot"; SLASH_CLEARLOOT2="/clearloot"
-        SlashCmdList.CLEARLOOT=function(input)
+        else message("This client has an unsupported loot API. Default loot UI remains available; /lg demo shows the preview.") end
+        SLASH_LOOTGOBLIN1="/lg"; SLASH_LOOTGOBLIN2="/lootgoblin"
+        SlashCmdList.LOOTGOBLIN=function(input)
             local cmd=(input or ""):lower():match("^%s*(%S+)")
             if cmd=="demo" then A.Demo()
             elseif cmd=="history" then A.OpenHistory("drops")

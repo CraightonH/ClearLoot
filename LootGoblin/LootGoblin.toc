@@ -1,9 +1,9 @@
 ## Interface: 16001
-## Title: ClearLoot
+## Title: LootGoblin
 ## Notes: Per-item group loot decisions, player rolls and explicit results.
-## Author: ClearLoot contributors
-## Version: 0.3.0-alpha
-## SavedVariables: ClearLootDB
+## Author: LootGoblin contributors
+## Version: 0.3.1-alpha
+## SavedVariables: LootGoblinDB
 Model.lua
 History.lua
 UI.lua

@@ -1,5 +1,5 @@
 local A={}; local now=100; local calls=0; local timers={}; local created={}
-local base=os.getenv("CLEARLOOT_ADDON") or "ClearLoot"
+local base=os.getenv("LOOTGOBLIN_ADDON") or "LootGoblin"
 local frameMethods={}
 function frameMethods:SetScript(k,v) self.scripts[k]=v end
 function frameMethods:HookScript(k,v) self.hooks[k]=v end
@@ -56,13 +56,13 @@ local history={}
 C_LootHistory={GetLootHistoryTime=function() return now end,GetAllEncounterInfos=function() return {{encounterID=1}} end,
     GetSortedDropsForEncounter=function() return history end,GetSortedInfoForDrop=function() return history[1] end}
 for i=1,4 do _G["GroupLootFrame"..i]=CreateFrame("Frame",nil,UIParent) end
-assert(loadfile(base.."/Model.lua"))("ClearLoot",A)
-assert(loadfile(base.."/History.lua"))("ClearLoot",A)
-assert(loadfile(base.."/UI.lua"))("ClearLoot",A)
-assert(loadfile(base.."/StatsUI.lua"))("ClearLoot",A)
-assert(loadfile(base.."/Core.lua"))("ClearLoot",A)
+assert(loadfile(base.."/Model.lua"))("LootGoblin",A)
+assert(loadfile(base.."/History.lua"))("LootGoblin",A)
+assert(loadfile(base.."/UI.lua"))("LootGoblin",A)
+assert(loadfile(base.."/StatsUI.lua"))("LootGoblin",A)
+assert(loadfile(base.."/Core.lua"))("LootGoblin",A)
 local eventFrame=created[#created]
-eventFrame.scripts.OnEvent(eventFrame,"ADDON_LOADED","ClearLoot")
+eventFrame.scripts.OnEvent(eventFrame,"ADDON_LOADED","LootGoblin")
 eventFrame.scripts.OnEvent(eventFrame,"START_LOOT_ROLL",10,60000)
 GroupLootFrame1.rollID=10
 assert(#A.rolls==1 and A.cards[1].roll.id==10)
@@ -93,7 +93,7 @@ A.RefreshHistory(); assert(not A.rolls[1].key and not A.rolls[2].key)
 assert(A.rolls[1].ambiguous and #A.rolls[1].rows==0)
 now=180; eventFrame.scripts.OnUpdate(eventFrame,1)
 assert(A.rolls[1].status=="Outcome unconfirmed")
-SlashCmdList.CLEARLOOT("native"); assert(GroupLootFrame1:GetAlpha()==1)
+SlashCmdList.LOOTGOBLIN("native"); assert(GroupLootFrame1:GetAlpha()==1)
 A.Demo(); local before=calls
 local recordedBefore=#A.db.lootArchive.records
 for _,r in ipairs(A.rolls) do if r.demo then

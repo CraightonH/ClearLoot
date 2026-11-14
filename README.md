@@ -1,8 +1,8 @@
-# ClearLoot
+# LootGoblin
 
 Compact group-loot panels and persistent roll history for **WoW Forever 1.60.1**, provisionally targeting Interface `16001`.
 
-**Status: 0.3.0 alpha.** The code has passed simulated model, history, UI, and browser checks. It has not been tested inside a running Forever client. The browser previews show the intended interface using illustrative data; they are not in-game screenshots.
+**Status: 0.3.1 alpha.** The code has passed simulated model, history, UI, and browser checks. It has not been tested inside a running Forever client. The browser previews show the intended interface using illustrative data; they are not in-game screenshots.
 
 ## Features
 
@@ -18,10 +18,10 @@ Compact group-loot panels and persistent roll history for **WoW Forever 1.60.1**
 ## Install the alpha
 
 1. Download this repository with **Code → Download ZIP**, or clone it.
-2. Copy the inner `ClearLoot/` directory into the Forever client's `Interface/AddOns/` directory.
-3. Confirm the resulting path is `Interface/AddOns/ClearLoot/ClearLoot.toc`.
-4. Enable ClearLoot in the character selection AddOns list. Disable other group-loot replacements, including BetterGroupLoot, while evaluating it.
-5. Run `/cloot demo` to preview three simulated rolls, then `/cloot` for settings.
+2. Copy the inner `LootGoblin/` directory into the Forever client's `Interface/AddOns/` directory.
+3. Confirm the resulting path is `Interface/AddOns/LootGoblin/LootGoblin.toc`.
+4. Enable LootGoblin in the character selection AddOns list. Disable other group-loot replacements, including BetterGroupLoot, while evaluating it.
+5. Run `/lg demo` to preview three simulated rolls, then `/lg` for settings.
 
 You can also build an addon-only ZIP:
 
@@ -29,22 +29,22 @@ You can also build an addon-only ZIP:
 python3 scripts/package.py
 ```
 
-This writes `dist/ClearLoot-0.3.0-alpha.zip`. Extract it into `Interface/AddOns/`.
+This writes `dist/LootGoblin-0.3.1-alpha.zip`. Extract it into `Interface/AddOns/`.
 
 ## Commands
 
 | Command | Action |
 | --- | --- |
-| `/cloot` | Open settings |
-| `/cloot demo` | Simulate three rolls without submitting real loot choices |
-| `/cloot history` | Open persistent drop history |
-| `/cloot stats` | Open character statistics and manual aliases |
-| `/cloot export` | Open selectable CSV text for copying |
-| `/cloot session` | Show the current session's live-panel history |
-| `/cloot clear` | Dismiss completed panels |
-| `/cloot native` | Immediately restore the default loot popups |
+| `/lg` | Open settings |
+| `/lg demo` | Simulate three rolls without submitting real loot choices |
+| `/lg history` | Open persistent drop history |
+| `/lg stats` | Open character statistics and manual aliases |
+| `/lg export` | Open selectable CSV text for copying |
+| `/lg session` | Show the current session's live-panel history |
+| `/lg clear` | Dismiss completed panels |
+| `/lg native` | Immediately restore the default loot popups |
 
-`/clearloot` is an alias for `/cloot`.
+`/lootgoblin` is an alias for `/lg`.
 
 ## Interpreting the statistics
 
@@ -56,7 +56,7 @@ Characters use GUIDs when supplied by the client and name-realm fallbacks otherw
 
 History records only group-loot rolls observed while the addon is running. The default retention is the newest **5,000 drops**, configurable from 100 to 50,000 in Advanced settings. Decreasing the limit prunes older records.
 
-Data is kept in account-level `ClearLootDB` SavedVariables and shared by your characters using the same WoW installation/account. The game saves it during normal logout or reload; a crash can lose unsaved changes. There is no cloud sync, retrospective collection, or automatic chat posting. Demo rolls never enter persistent statistics.
+Data is kept in account-level `LootGoblinDB` SavedVariables and shared by your characters using the same WoW installation/account. The game saves it during normal logout or reload; a crash can lose unsaved changes. There is no cloud sync, retrospective collection, or automatic chat posting. Demo rolls never enter persistent statistics.
 
 ## Browser previews
 
@@ -111,21 +111,21 @@ The client build is still unconfirmed. Check it in game with:
 /run print(GetBuildInfo())
 ```
 
-Forever's encounter loot history does not provide a documented direct mapping from `rollID` to encounter/drop identity. ClearLoot uses unique item-link matches within a narrow time window. Simultaneous identical items are marked uncertain instead of being attributed by guessed arrival order. Some trash/chest rolls may lack history entries. Those records cannot produce reliable per-player statistics.
+Forever's encounter loot history does not provide a documented direct mapping from `rollID` to encounter/drop identity. LootGoblin uses unique item-link matches within a narrow time window. Simultaneous identical items are marked uncertain instead of being attributed by guessed arrival order. Some trash/chest rolls may lack history entries. Those records cannot produce reliable per-player statistics.
 
-Before regular use, test real Need/Greed/Pass choices, binding confirmation acceptance and cancellation, wins and losses, ties, simultaneous and identical drops, all-pass outcomes, reloads during active rolls, persistence after logout/reload, and restoration with `/cloot native`. Gamepad mode keeps its native presentation. Mock tests do not verify in-game rendering, protected/taint behavior, or compatibility with other addons.
+Before regular use, test real Need/Greed/Pass choices, binding confirmation acceptance and cancellation, wins and losses, ties, simultaneous and identical drops, all-pass outcomes, reloads during active rolls, persistence after logout/reload, and restoration with `/lg native`. Gamepad mode keeps its native presentation. Mock tests do not verify in-game rendering, protected/taint behavior, or compatibility with other addons.
 
-The complete usage notes and source references are in [ClearLoot/README.txt](ClearLoot/README.txt).
+The complete usage notes and source references are in [LootGoblin/README.txt](LootGoblin/README.txt).
 
 ## Source layout
 
 | File | Purpose |
 | --- | --- |
-| `ClearLoot/Model.lua` | Roll state, matching, sorting, completion, and close timing |
-| `ClearLoot/History.lua` | Persistent records, identities, aliases, statistics, and CSV |
-| `ClearLoot/UI.lua` | Loot panels and settings |
-| `ClearLoot/StatsUI.lua` | History, statistics, detail, and CSV windows |
-| `ClearLoot/Core.lua` | Game events and native loot UI integration |
+| `LootGoblin/Model.lua` | Roll state, matching, sorting, completion, and close timing |
+| `LootGoblin/History.lua` | Persistent records, identities, aliases, statistics, and CSV |
+| `LootGoblin/UI.lua` | Loot panels and settings |
+| `LootGoblin/StatsUI.lua` | History, statistics, detail, and CSV windows |
+| `LootGoblin/Core.lua` | Game events and native loot UI integration |
 | `tests/` | Model, history, integration, and browser checks |
 | `previews/` | Standalone browser mockups with sample data |
 | `scripts/package.py` | Addon ZIP builder |
