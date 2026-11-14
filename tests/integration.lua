@@ -1,5 +1,5 @@
 local A={}; local now=100; local calls=0; local timers={}; local created={}
-local base=os.getenv("CLEARLOOT_ADDON") or "ClearLoot"
+local base=os.getenv("LOOTGOBLIN_ADDON") or "LootGoblin"
 local nativeSchema=assert(loadfile("tests/fixtures/forever_loot_template.lua"))()
 local frameMethods={}
 function frameMethods:SetScript(k,v) self.scripts[k]=v end
@@ -46,10 +46,10 @@ function frameMethods:SetStatusBarColor(r,g,b) self.color={r,g,b} end
 function CreateFrame(kind,name,parent,template)
     local f=setmetatable({children={},scripts={},hooks={},shown=true},{__index=frameMethods})
     f.template=template; f.frameName=name
-    if template=="ClearLootDemoLootFrameTemplate" then
+    if template=="LootGoblinDemoLootFrameTemplate" then
         local xml=assert(io.open(base.."/Demo.xml")):read("*a")
         assert(xml:find('inherits="'..nativeSchema.template..'"',1,true))
-        assert(xml:find("<OnLoad>self.clearLootDemo = true;</OnLoad>",1,true))
+        assert(xml:find("<OnLoad>self.lootGoblinDemo = true;</OnLoad>",1,true))
         for _,script in ipairs({"OnShow","OnHide","OnEvent","OnUpdate"}) do
             assert(xml:find("<"..script..">return;</"..script..">",1,true))
             f.scripts[script]=function() error("inherited live loot script must not run") end
@@ -97,12 +97,12 @@ end
 -- Optional verification against downloaded, pinned Blizzard Forever Lua source.
 -- The regular suite is self contained; this path exercises the actual native
 -- layout implementation rather than just our small frame API mock.
-if os.getenv("CLEARLOOT_NATIVE_SOURCE") then
+if os.getenv("LOOTGOBLIN_NATIVE_SOURCE") then
     InputUtil={IsGamepadUIEnabled=function() return false end}
     max=math.max
     GroupLootContainer.rollFrames={}; GroupLootContainer.maxIndex=0
     GroupLootContainer.layoutParent={Layout=function() end}
-    assert(loadfile(os.getenv("CLEARLOOT_NATIVE_SOURCE")))()
+    assert(loadfile(os.getenv("LOOTGOBLIN_NATIVE_SOURCE")))()
     local nativeUpdate=GroupLootContainer_Update
     local nativeAdd=GroupLootContainer_AddFrame
     GroupLootContainer_Update=function(c) nativeLayouts=nativeLayouts+1; nativeUpdate(c) end
@@ -127,18 +127,18 @@ local history={}
 C_LootHistory={GetLootHistoryTime=function() return now end,GetAllEncounterInfos=function() return {{encounterID=1}} end,
     GetSortedDropsForEncounter=function() return history end,GetSortedInfoForDrop=function() return history[1] end}
 for i=1,4 do _G["GroupLootFrame"..i]=CreateFrame("Frame",nil,UIParent) end
-assert(loadfile(base.."/Model.lua"))("ClearLoot",A)
-assert(loadfile(base.."/History.lua"))("ClearLoot",A)
-assert(loadfile(base.."/BetModel.lua"))("ClearLoot",A)
-assert(loadfile(base.."/BetComms.lua"))("ClearLoot",A)
-assert(loadfile(base.."/UI.lua"))("ClearLoot",A)
-assert(loadfile(base.."/StatsUI.lua"))("ClearLoot",A)
-assert(loadfile(base.."/BetUI.lua"))("ClearLoot",A)
-assert(loadfile(base.."/NativeUI.lua"))("ClearLoot",A)
-assert(loadfile(base.."/Core.lua"))("ClearLoot",A)
+assert(loadfile(base.."/Model.lua"))("LootGoblin",A)
+assert(loadfile(base.."/History.lua"))("LootGoblin",A)
+assert(loadfile(base.."/BetModel.lua"))("LootGoblin",A)
+assert(loadfile(base.."/BetComms.lua"))("LootGoblin",A)
+assert(loadfile(base.."/UI.lua"))("LootGoblin",A)
+assert(loadfile(base.."/StatsUI.lua"))("LootGoblin",A)
+assert(loadfile(base.."/BetUI.lua"))("LootGoblin",A)
+assert(loadfile(base.."/NativeUI.lua"))("LootGoblin",A)
+assert(loadfile(base.."/Core.lua"))("LootGoblin",A)
 local eventFrame=created[#created]
-eventFrame.scripts.OnEvent(eventFrame,"ADDON_LOADED","ClearLoot")
-assert(registered.name=="ClearLoot" and A.settings,"settings must register at addon load")
+eventFrame.scripts.OnEvent(eventFrame,"ADDON_LOADED","LootGoblin")
+assert(registered.name=="LootGoblin" and A.settings,"settings must register at addon load")
 A.OpenSettings(); assert(opened==42,"slash settings must open the registered category")
 GroupLootFrame1.rollID=10
 eventFrame.scripts.OnEvent(eventFrame,"START_LOOT_ROLL",10,60000)
@@ -212,7 +212,7 @@ A.Render(); assert(GroupLootContainer.reservedSize==100)
 A.db.presentation="native"
 now=180; eventFrame.scripts.OnUpdate(eventFrame,1)
 assert(A.rolls[1].status=="Outcome unconfirmed")
-SlashCmdList.CLEARLOOT("native"); assert(GroupLootFrame1:GetAlpha()==1)
+SlashCmdList.LOOTGOBLIN("native"); assert(GroupLootFrame1:GetAlpha()==1)
 local before=calls
 local recordedBefore=#A.db.lootArchive.records
 local liveID=GroupLootFrame1.rollID
@@ -224,7 +224,7 @@ local stale=A.demoFrames[1].roll
 A.Demo()
 assert(#A.demoFrames==3 and A.demoFrames[1].roll~=stale,"reopening must reuse frames with fresh rolls")
 for i,f in ipairs(A.demoFrames) do
-    assert(f.template=="ClearLootDemoLootFrameTemplate" and f.roll.demo and not f.rollID)
+    assert(f.template=="LootGoblinDemoLootFrameTemplate" and f.roll.demo and not f.rollID)
     assert(f.card.attached and f.card.tableOnly and f.card.point[2]==f)
     assert(f.card:GetWidth()==f:GetWidth(),"preview table must use native width")
     assert(f.point[1]=="CENTER" and f.point[2]==A.demoContainer,"preview must use native container layout")
@@ -238,24 +238,24 @@ local dragged=A.demoFrames[1]; local handle=dragged.card.dragHandle
 assert(handle and handle.owner==dragged and not dragged.card.pin)
 local originalAnchor=dragged.point
 handle.scripts.OnDragStart(handle)
-assert(dragged.clearLootDragging)
-A.Render(); assert(dragged.clearLootDragging and dragged.point==originalAnchor,"refresh must not interrupt dragging")
+assert(dragged.lootGoblinDragging)
+A.Render(); assert(dragged.lootGoblinDragging and dragged.point==originalAnchor,"refresh must not interrupt dragging")
 dragged.centerX=800; dragged.centerY=500
 handle.scripts.OnDragStop(handle)
-assert(not dragged.clearLootDragging)
+assert(not dragged.lootGoblinDragging)
 assert(A.db.lootPositions[1].x==300 and A.db.lootPositions[1].y==100)
 assert(dragged.point[1]=="CENTER" and dragged.point[2]==UIParent)
 A.Render(); assert(dragged.point[4]==300 and dragged.point[5]==100,"native layout must preserve dragged location")
 assert(dragged.card.point[2]==dragged,"table must continue following the dragged header")
 A.db.locked=true; handle.scripts.OnDragStart(handle)
-assert(not dragged.clearLootDragging,"locked windows must not drag")
+assert(not dragged.lootGoblinDragging,"locked windows must not drag")
 A.db.locked=false
 for _,surface in ipairs({dragged,dragged.IconFrame}) do
-    surface.hooks.OnDragStart(surface); assert(dragged.clearLootDragging)
-    surface.hooks.OnDragStop(surface); assert(not dragged.clearLootDragging)
+    surface.hooks.OnDragStart(surface); assert(dragged.lootGoblinDragging)
+    surface.hooks.OnDragStop(surface); assert(not dragged.lootGoblinDragging)
 end
-dragged.card.scripts.OnDragStart(dragged.card); assert(dragged.clearLootDragging)
-dragged.card.scripts.OnDragStop(dragged.card); assert(not dragged.clearLootDragging)
+dragged.card.scripts.OnDragStart(dragged.card); assert(dragged.lootGoblinDragging)
+dragged.card.scripts.OnDragStop(dragged.card); assert(not dragged.lootGoblinDragging)
 assert(dragged.LootButtonContainer.PassButton.scripts.OnClick,"native button click must remain intact")
 local demoLedgerBefore=#A.db.betLedger.records
 local demoPlayer=A.demoFrames[1].card.rows[1]
@@ -336,7 +336,7 @@ assert(snapshot.total==5 and snapshot.selected==1 and snapshot.leftMs==59999)
 rolls[3].state=5; assert(A.BetSnapshot(real).selected==2); rolls[3].state=4
 local bf=A.betEventFrame
 local notification=table.concat({"BET","2",snapshot.itemKey,snapshot.rosterKey,snapshot.deadline,"peer","P3",100,1,59999,20,10},"|")
-bf.scripts.OnEvent(bf,"CHAT_MSG_ADDON","ClearLootBets",notification,"WHISPER","Player2-Realm")
+bf.scripts.OnEvent(bf,"CHAT_MSG_ADDON","LootGoblinBets",notification,"WHISPER","Player2-Realm")
 assert(not A.betClient.byRoll[real],"only group distributions are accepted")
 A.betWindow:Hide()
 nativeBetCard.quickStake:SetText("0.1")
@@ -352,7 +352,7 @@ assert(not A.betWindow:IsShown(),"inline placement must not open a betting menu"
 assert(#A.db.betLedger.records==ledgerBeforeClick+1,"one click must immediately place exactly one bet")
 local betRound=A.betClient.byRoll[real].record
 assert(betRound.pool==1000 and #betRound.entries==1)
-bf.scripts.OnEvent(bf,"CHAT_MSG_ADDON","ClearLootBets",notification,"PARTY","Player2-Realm")
+bf.scripts.OnEvent(bf,"CHAT_MSG_ADDON","LootGoblinBets",notification,"PARTY","Player2-Realm")
 assert(betRound.pool==1100 and #betRound.entries==2)
 local previousCalls=calls
 A.Choose(real,1); assert(calls==previousCalls+1,"betting must not delay normal loot choices")
@@ -378,7 +378,7 @@ assert(not nativeBetCard.rows[1].betButtons[1].enabled,"selection threshold must
 rolls[3].state=4
 assert(not A.PlaceInlineBet(unbet,rolls[3],A.db.betMaxGold+1))
 assert(#A.db.betLedger.records==accepted,"oversized pledges must not enter the ledger")
-for _,packet in ipairs(sent) do assert(packet[1]=="ClearLootBets" and packet[3]=="PARTY" and #packet[2]<=255) end
+for _,packet in ipairs(sent) do assert(packet[1]=="LootGoblinBets" and packet[3]=="PARTY" and #packet[2]<=255) end
 local ledgerSnapshot={total=2,selected=0,leftMs=60000,participants=participants,
     rosterKey=A.BetModel.RosterKey(participants),itemKey="item"}
 local payable=assert(A.BetModel.New("pay","A",ledgerSnapshot,{percent=20,cutoff=10,window=5,maxStake=100},0))
@@ -393,7 +393,7 @@ print("PASS integration: addon UI, native controls, history, demo isolation, asy
 A.demoFrames={}; A.demoTemplateWarning=nil; A.historyView=false
 local create=CreateFrame
 CreateFrame=function(kind,name,parent,template)
-    if template=="ClearLootDemoLootFrameTemplate" then error("missing native template") end
+    if template=="LootGoblinDemoLootFrameTemplate" then error("missing native template") end
     return create(kind,name,parent,template)
 end
 A.Demo()

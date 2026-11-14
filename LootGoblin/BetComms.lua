@@ -298,19 +298,19 @@ function A.InitBetting()
         selfGUID=function() return UnitGUID and UnitGUID("player") end,members=A.BetMembers,snapshot=A.BetSnapshot,rolls=function() return A.rolls end,
         send=function(message)
             local channel=distribution(); if not channel or not A.bettingAvailable then return false end
-            local ok,result,legacy=pcall(api.SendAddonMessage,"ClearLootBets",message,channel)
+            local ok,result,legacy=pcall(api.SendAddonMessage,"LootGoblinBets",message,channel)
             local status=legacy or result
             return ok and (status==nil or status==true or status==0)
         end}
     A.betClient=A.NewBetClient(A.db,env)
     if not A.bettingAvailable then return end
-    local ok,registered=pcall(api.RegisterAddonMessagePrefix,"ClearLootBets")
+    local ok,registered=pcall(api.RegisterAddonMessagePrefix,"LootGoblinBets")
     if not ok or (registered~=nil and registered~=true and registered~=0) then A.bettingAvailable=false; return end
     local frame=CreateFrame("Frame"); A.betEventFrame=frame
     frame:RegisterEvent("CHAT_MSG_ADDON"); frame:RegisterEvent("GROUP_ROSTER_UPDATE"); frame:RegisterEvent("PLAYER_ENTERING_WORLD")
     frame:SetScript("OnEvent",function(_,event,prefix,message,channel,sender)
         if event=="CHAT_MSG_ADDON" then
-            if prefix~="ClearLootBets" or (channel~="PARTY" and channel~="RAID" and channel~="INSTANCE_CHAT") then return end
+            if prefix~="LootGoblinBets" or (channel~="PARTY" and channel~="RAID" and channel~="INSTANCE_CHAT") then return end
             local _,names=A.BetMembers()
             local guid=names[normalized(sender)]
             if not guid and sender and not sender:find("-",1,true) then

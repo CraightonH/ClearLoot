@@ -5,7 +5,7 @@ M.states={OPEN="Bets arriving",LOCKED="Bets shared",UNRESOLVED="Waiting to recon
 M.reasons={data="Timer or eligible-player history unavailable",threshold="More than the allowed percentage have chosen",
     timer="Server-time cutoff reached",window="Betting window closed",short="Too little time for a betting window",
     roster="Eligible players changed",finished="Loot roll already finished",duplicate="One accepted bet per character",
-    target="Unknown prediction target",stake="Stake is outside this round's limit",peers="Another enabled ClearLoot player is needed",
+    target="Unknown prediction target",stake="Stake is outside this round's limit",peers="Another enabled LootGoblin player is needed",
     rules="Friends are using different betting rules",host="Waiting for another bettor to resolve",
     sync="Bet book could not be synchronized",ambiguous="Loot association is uncertain",interrupted="Interrupted by reload",
     few="Fewer than two accepted bettors",none="Nobody predicted the winner; pledges cancelled",allpass="Everyone passed",

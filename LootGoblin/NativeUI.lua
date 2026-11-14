@@ -81,10 +81,10 @@ function A.AttachTable(native,r,card,slot)
 end
 local function makeDemoFrame(index)
     if A.demoTemplateWarning then return nil end
-    local ok,f=pcall(CreateFrame,"Frame","ClearLootDemoLootFrame"..index,UIParent,"ClearLootDemoLootFrameTemplate")
+    local ok,f=pcall(CreateFrame,"Frame","LootGoblinDemoLootFrame"..index,UIParent,"LootGoblinDemoLootFrameTemplate")
     if not ok or not f or not f.IconFrame or not f.Name or not f.Timer or not f.LootButtonContainer then
         if not A.demoTemplateWarning then
-            print("ClearLoot 0.6.0: native dungeon-roll demo could not load. Restart the client to load Demo.xml. "..tostring(ok and "Missing Forever loot frame fields" or f))
+            print("LootGoblin 0.7.0: native dungeon-roll demo could not load. Restart the client to load Demo.xml. "..tostring(ok and "Missing Forever loot frame fields" or f))
             A.demoTemplateWarning=true
         end
         if ok and f then f:Hide() end
@@ -130,12 +130,12 @@ function A.RenderNativeDemo()
     if not hasDemo or A.demoTemplateWarning then hideUnused(); return end
     if not GroupLootContainer_AddFrame or not GroupLootContainer_Update then
         A.demoTemplateWarning=true
-        print("ClearLoot 0.6.0: this client has no native loot container layout functions; demo stopped.")
+        print("LootGoblin 0.7.0: this client has no native loot container layout functions; demo stopped.")
         return
     end
     local visible={}; local height=0; local tableHeight=0
     if not A.demoContainer then
-        local c=CreateFrame("Frame","ClearLootDemoLootContainer",UIParent)
+        local c=CreateFrame("Frame","LootGoblinDemoLootContainer",UIParent)
         c:SetSize(256,1); c:SetFrameStrata("DIALOG")
         c:SetPoint("BOTTOM",UIParent,"BOTTOM",0,60)
         -- Blizzard's native layout calls its managed-alert parent. This preview
@@ -177,7 +177,7 @@ function A.RenderNativeDemo()
     hideUnused()
     if #visible==0 then container:Hide(); return end
     for _,f in ipairs(visible) do
-        if f.clearLootDragging then container:Show(); return end
+        if f.lootGoblinDragging then container:Show(); return end
     end
     -- Use the game client's normal dungeon-roll placement function. The only
     -- simulated pieces are item/participant data and the choice callbacks.
@@ -190,19 +190,19 @@ function A.RenderNativeDemo()
         f:SetScale(scale); f.card:SetScale(scale)
         GroupLootContainer_AddFrame(container,f)
     end
-    for _,f in ipairs(visible) do A.RestoreLootPosition(f,f.clearLootSlot) end
+    for _,f in ipairs(visible) do A.RestoreLootPosition(f,f.lootGoblinSlot) end
 end
 
 -- Position the header and let the table follow its anchor. Store UIParent-space
 -- coordinates so changing the preview scale does not change the saved location.
 function A.RestoreLootPosition(frame,slot)
     local p=A.db.lootPositions[slot]
-    if not p or frame.clearLootDragging then return end
+    if not p or frame.lootGoblinDragging then return end
     local ratio=frame:GetEffectiveScale()/UIParent:GetEffectiveScale()
     frame:ClearAllPoints(); frame:SetPoint("CENTER",UIParent,"CENTER",p.x/ratio,p.y/ratio)
 end
 function A.EnableLootDragging(native,card,slot)
-    native.clearLootSlot=slot
+    native.lootGoblinSlot=slot
     native:SetMovable(true); native:SetClampedToScreen(true)
     if not card.dragHandle then
         local handle=CreateFrame("Frame",nil,card)
@@ -211,20 +211,20 @@ function A.EnableLootDragging(native,card,slot)
         handle:SetScript("OnDragStart",function(self)
             local frame=self.owner
             if A.db.locked or (not self.roll.demo and InCombatLockdown and InCombatLockdown()) then return end
-            frame.clearLootDragging=true; frame:StartMoving()
+            frame.lootGoblinDragging=true; frame:StartMoving()
         end)
         handle:SetScript("OnDragStop",function(self)
             local frame=self.owner
-            if not frame.clearLootDragging then return end
-            frame:StopMovingOrSizing(); frame.clearLootDragging=false
+            if not frame.lootGoblinDragging then return end
+            frame:StopMovingOrSizing(); frame.lootGoblinDragging=false
             local x,y=frame:GetCenter(); local px,py=UIParent:GetCenter()
             local ratio=frame:GetEffectiveScale()/UIParent:GetEffectiveScale()
-            A.db.lootPositions[frame.clearLootSlot]={x=x*ratio-px,y=y*ratio-py}
+            A.db.lootPositions[frame.lootGoblinSlot]={x=x*ratio-px,y=y*ratio-py}
             A.Render()
         end)
     end
     card.dragHandle.owner=native; card.dragHandle.roll=card.roll
-    native.clearLootDragHandle=card.dragHandle
+    native.lootGoblinDragHandle=card.dragHandle
     if not card.wholePanelDrag then
         card.wholePanelDrag=true
         card:EnableMouse(true); card:RegisterForDrag("LeftButton")
@@ -237,15 +237,15 @@ function A.EnableLootDragging(native,card,slot)
             handle:GetScript("OnDragStop")(handle)
         end)
     end
-    if not native.clearLootWholeDrag then
-        native.clearLootWholeDrag=true
+    if not native.lootGoblinWholeDrag then
+        native.lootGoblinWholeDrag=true
         local function start()
-            local handle=native.clearLootDragHandle
+            local handle=native.lootGoblinDragHandle
             if handle and handle.roll and handle.roll.nativeAttached and
                 (handle.roll.demo or enabled()) then handle:GetScript("OnDragStart")(handle) end
         end
         local function stop()
-            local handle=native.clearLootDragHandle
+            local handle=native.lootGoblinDragHandle
             if handle then handle:GetScript("OnDragStop")(handle) end
         end
         -- Leave all existing native scripts and loot-button clicks in place.

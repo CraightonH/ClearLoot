@@ -1,9 +1,9 @@
 ## Interface: 16001
-## Title: ClearLoot
+## Title: LootGoblin
 ## Notes: Native loot tables, roll history, and optional honor-ledger side bets.
-## Author: ClearLoot contributors
-## Version: 0.6.0-alpha
-## SavedVariables: ClearLootDB
+## Author: LootGoblin contributors
+## Version: 0.7.0-alpha
+## SavedVariables: LootGoblinDB
 Model.lua
 History.lua
 BetModel.lua

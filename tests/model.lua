@@ -1,6 +1,6 @@
 local A={}
-local base=os.getenv("CLEARLOOT_ADDON") or "ClearLoot"
-assert(loadfile(base.."/Model.lua"))("ClearLoot",A)
+local base=os.getenv("LOOTGOBLIN_ADDON") or "LootGoblin"
+assert(loadfile(base.."/Model.lua"))("LootGoblin",A)
 local total=0
 local function test(name,fn) fn(); total=total+1; print("PASS "..name) end
 local function new(id,link,time) return A.NewRoll(id,link or "item:a",time or 10,60,time or 10) end

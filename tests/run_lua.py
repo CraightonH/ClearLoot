@@ -4,7 +4,7 @@ import os
 import pathlib
 import sys
 
-os.environ.setdefault("CLEARLOOT_ADDON", str(pathlib.Path(__file__).resolve().parents[1] / "ClearLoot"))
+os.environ.setdefault("LOOTGOBLIN_ADDON", str(pathlib.Path(__file__).resolve().parents[1] / "LootGoblin"))
 
 lua = ctypes.CDLL("liblua5.4.so.0")
 lua.luaL_newstate.restype = ctypes.c_void_p

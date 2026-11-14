@@ -3,77 +3,77 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ClearLoot loot panels — simulated preview</title>
+<title>LootGoblin loot panels — simulated preview</title>
 <style>:root{color-scheme:light dark}body{margin:0 auto;max-width:760px;font-family:system-ui,sans-serif}</style>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
-<div id="clearloot-compact" aria-label="Compact ClearLoot interface preview">
+<div id="lootgoblin-compact" aria-label="Compact LootGoblin interface preview">
 <style>
-#clearloot-compact{--cl-bg:light-dark(#f4f1e9,#15191d);--cl-panel:light-dark(#fffdf8,#20252b);--cl-fg:light-dark(#242932,#eee9df);--cl-muted:light-dark(#62636b,#adb1b8);--cl-line:light-dark(#c5c1bb,#48505a);--cl-gold:light-dark(#776025,#e3c47b);--cl-purple:light-dark(#785095,#c9a3ea);--cl-blue:light-dark(#245b8f,#97c7f1);--cl-yellow:#e5bc35;--cl-green:#4abd65;font:12px/1.25 system-ui,sans-serif;color:var(--cl-fg)}
-#clearloot-compact *{box-sizing:border-box}
-#clearloot-compact .cl-stage{padding:16px 8px}
-#clearloot-compact .cl-preview-label{color:var(--cl-muted);font-size:11px;margin:0 auto 8px;max-width:400px}
-#clearloot-compact .cl-app{max-width:400px;margin:auto;background:var(--cl-bg);border:1px solid var(--cl-line);border-radius:6px;overflow:hidden}
-#clearloot-compact .cl-top{display:flex;align-items:center;gap:6px;padding:7px 9px;border-bottom:1px solid var(--cl-line)}
-#clearloot-compact .cl-brand{margin-right:auto;font-family:Georgia,serif;letter-spacing:1px;color:var(--cl-gold);font-size:13px}
-#clearloot-compact button,#clearloot-compact input,#clearloot-compact select{font:inherit;color:inherit}
-#clearloot-compact button{padding:3px 7px;min-height:22px;border:1px solid var(--cl-line);background:var(--cl-panel);border-radius:3px;cursor:pointer}
-#clearloot-compact button:hover{border-color:var(--cl-gold)}
-#clearloot-compact button:disabled{opacity:.45;cursor:default}
-#clearloot-compact button[aria-pressed=true]{color:var(--cl-bg);background:var(--cl-fg)}
-#clearloot-compact .cl-items{display:grid;gap:6px;padding:6px}
-#clearloot-compact .cl-item{background:var(--cl-panel);border:1px solid var(--cl-line);border-radius:4px;padding:6px 8px}
-#clearloot-compact .cl-header{display:grid;grid-template-columns:32px minmax(0,1fr) 90px;gap:8px;align-items:center;min-height:40px}
-#clearloot-compact .cl-icon{height:32px;display:grid;place-items:center;background:var(--cl-bg);border:1px solid var(--cl-purple);border-radius:3px;color:var(--cl-gold)}
-#clearloot-compact .cl-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--cl-purple);font-size:13px;margin-bottom:4px}
-#clearloot-compact .cl-meta{font-size:11px;color:var(--cl-muted)}
-#clearloot-compact .cl-actions{display:grid;grid-template-columns:1fr 1fr;gap:2px 4px}
-#clearloot-compact .cl-actions button{font-size:11px;padding:1px 3px;min-height:18px}
-#clearloot-compact .cl-actions .cl-need{color:var(--cl-blue)}
-#clearloot-compact .cl-actions .cl-greed{color:var(--cl-gold)}
-#clearloot-compact .cl-bar{height:3px;background:var(--cl-line);margin:4px 0 5px;overflow:hidden}
-#clearloot-compact .cl-bar-fill{height:100%;background:var(--cl-yellow)}
-#clearloot-compact .cl-bar[data-complete=true] .cl-bar-fill{background:var(--cl-green)}
-#clearloot-compact table{width:100%;border-collapse:collapse;table-layout:fixed}
-#clearloot-compact th{font-size:10px;letter-spacing:.6px;font-weight:400;color:var(--cl-muted);text-align:left;padding:0 0 3px}
-#clearloot-compact th:first-child{width:48%}
-#clearloot-compact th:nth-child(2){width:34%}
-#clearloot-compact th:last-child,#clearloot-compact td:last-child{text-align:right;font-variant-numeric:tabular-nums}
-#clearloot-compact td{padding:1px 0;height:17px;overflow-wrap:anywhere}
-#clearloot-compact tr.cl-group-start td{border-top:1px solid var(--cl-line);padding-top:5px}
-#clearloot-compact .cl-choice-need{color:var(--cl-blue)}
-#clearloot-compact .cl-choice-greed{color:var(--cl-gold)}
-#clearloot-compact .cl-choice-pass,#clearloot-compact .cl-choice-waiting{color:var(--cl-muted)}
-#clearloot-compact .cl-result{display:flex;align-items:center;gap:6px;min-height:23px;padding-top:4px;font-size:11px}
-#clearloot-compact .cl-result-text{flex:1;min-width:0}
-#clearloot-compact .cl-result button{font-size:10px;padding:1px 4px;min-height:17px}
-#clearloot-compact .cl-result strong{font-weight:500}
-#clearloot-compact .cl-bottom{display:flex;gap:5px;flex-wrap:wrap;padding:2px 7px 7px;align-items:center}
-#clearloot-compact .cl-bottom .cl-meta{margin-right:auto}
-#clearloot-compact .cl-bottom button{font-size:11px}
-#clearloot-compact .cl-settings{display:grid;gap:10px;padding:12px;border-bottom:1px solid var(--cl-line)}
-#clearloot-compact .cl-field{display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap}
-#clearloot-compact input[type=number]{width:65px;background:var(--cl-panel);border:1px solid var(--cl-line);padding:4px}
-#clearloot-compact select{background:var(--cl-panel);border:1px solid var(--cl-line);padding:4px;max-width:100%}
-#clearloot-compact details>div{display:grid;gap:10px;padding-top:10px}
-#clearloot-compact summary{cursor:pointer}
-#clearloot-compact .cl-tabs{padding:6px 6px 0;display:flex;flex-wrap:wrap;gap:4px}
-#clearloot-compact .cl-tabs button{flex:1;font-size:11px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#clearloot-compact .cl-empty{padding:14px;color:var(--cl-muted)}
-#clearloot-compact .cl-spacious{max-width:480px}
-#clearloot-compact .cl-spacious .cl-item{padding:14px}
-#clearloot-compact .cl-spacious .cl-header{min-height:58px}
-#clearloot-compact .cl-spacious td{padding-top:6px;padding-bottom:6px;height:27px}
-#clearloot-compact .cl-spacious tr.cl-group-start td{padding-top:10px}
-#clearloot-compact .cl-spacious .cl-bar{height:5px;margin:10px 0}
-#clearloot-compact .cl-spacious .cl-result{min-height:35px;font-size:12px}
-#clearloot-compact .cl-windows{max-width:none}
-#clearloot-compact .cl-windows .cl-items{grid-template-columns:repeat(2,minmax(0,1fr))}
-#clearloot-compact .cl-download{max-width:400px;margin:8px auto 0;font-size:11px;color:var(--cl-muted);display:flex;flex-wrap:wrap;gap:8px}
-#clearloot-compact .cl-download a{color:var(--cl-blue)}
-@media(max-width:640px){#clearloot-compact .cl-windows .cl-items{grid-template-columns:1fr}}
-@media(pointer:coarse){#clearloot-compact button{min-height:36px}#clearloot-compact .cl-actions button{min-height:36px}#clearloot-compact .cl-actions{gap:4px}#clearloot-compact input,#clearloot-compact select{font-size:16px}}
+#lootgoblin-compact{--cl-bg:light-dark(#f4f1e9,#15191d);--cl-panel:light-dark(#fffdf8,#20252b);--cl-fg:light-dark(#242932,#eee9df);--cl-muted:light-dark(#62636b,#adb1b8);--cl-line:light-dark(#c5c1bb,#48505a);--cl-gold:light-dark(#776025,#e3c47b);--cl-purple:light-dark(#785095,#c9a3ea);--cl-blue:light-dark(#245b8f,#97c7f1);--cl-yellow:#e5bc35;--cl-green:#4abd65;font:12px/1.25 system-ui,sans-serif;color:var(--cl-fg)}
+#lootgoblin-compact *{box-sizing:border-box}
+#lootgoblin-compact .cl-stage{padding:16px 8px}
+#lootgoblin-compact .cl-preview-label{color:var(--cl-muted);font-size:11px;margin:0 auto 8px;max-width:400px}
+#lootgoblin-compact .cl-app{max-width:400px;margin:auto;background:var(--cl-bg);border:1px solid var(--cl-line);border-radius:6px;overflow:hidden}
+#lootgoblin-compact .cl-top{display:flex;align-items:center;gap:6px;padding:7px 9px;border-bottom:1px solid var(--cl-line)}
+#lootgoblin-compact .cl-brand{margin-right:auto;font-family:Georgia,serif;letter-spacing:1px;color:var(--cl-gold);font-size:13px}
+#lootgoblin-compact button,#lootgoblin-compact input,#lootgoblin-compact select{font:inherit;color:inherit}
+#lootgoblin-compact button{padding:3px 7px;min-height:22px;border:1px solid var(--cl-line);background:var(--cl-panel);border-radius:3px;cursor:pointer}
+#lootgoblin-compact button:hover{border-color:var(--cl-gold)}
+#lootgoblin-compact button:disabled{opacity:.45;cursor:default}
+#lootgoblin-compact button[aria-pressed=true]{color:var(--cl-bg);background:var(--cl-fg)}
+#lootgoblin-compact .cl-items{display:grid;gap:6px;padding:6px}
+#lootgoblin-compact .cl-item{background:var(--cl-panel);border:1px solid var(--cl-line);border-radius:4px;padding:6px 8px}
+#lootgoblin-compact .cl-header{display:grid;grid-template-columns:32px minmax(0,1fr) 90px;gap:8px;align-items:center;min-height:40px}
+#lootgoblin-compact .cl-icon{height:32px;display:grid;place-items:center;background:var(--cl-bg);border:1px solid var(--cl-purple);border-radius:3px;color:var(--cl-gold)}
+#lootgoblin-compact .cl-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--cl-purple);font-size:13px;margin-bottom:4px}
+#lootgoblin-compact .cl-meta{font-size:11px;color:var(--cl-muted)}
+#lootgoblin-compact .cl-actions{display:grid;grid-template-columns:1fr 1fr;gap:2px 4px}
+#lootgoblin-compact .cl-actions button{font-size:11px;padding:1px 3px;min-height:18px}
+#lootgoblin-compact .cl-actions .cl-need{color:var(--cl-blue)}
+#lootgoblin-compact .cl-actions .cl-greed{color:var(--cl-gold)}
+#lootgoblin-compact .cl-bar{height:3px;background:var(--cl-line);margin:4px 0 5px;overflow:hidden}
+#lootgoblin-compact .cl-bar-fill{height:100%;background:var(--cl-yellow)}
+#lootgoblin-compact .cl-bar[data-complete=true] .cl-bar-fill{background:var(--cl-green)}
+#lootgoblin-compact table{width:100%;border-collapse:collapse;table-layout:fixed}
+#lootgoblin-compact th{font-size:10px;letter-spacing:.6px;font-weight:400;color:var(--cl-muted);text-align:left;padding:0 0 3px}
+#lootgoblin-compact th:first-child{width:48%}
+#lootgoblin-compact th:nth-child(2){width:34%}
+#lootgoblin-compact th:last-child,#lootgoblin-compact td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+#lootgoblin-compact td{padding:1px 0;height:17px;overflow-wrap:anywhere}
+#lootgoblin-compact tr.cl-group-start td{border-top:1px solid var(--cl-line);padding-top:5px}
+#lootgoblin-compact .cl-choice-need{color:var(--cl-blue)}
+#lootgoblin-compact .cl-choice-greed{color:var(--cl-gold)}
+#lootgoblin-compact .cl-choice-pass,#lootgoblin-compact .cl-choice-waiting{color:var(--cl-muted)}
+#lootgoblin-compact .cl-result{display:flex;align-items:center;gap:6px;min-height:23px;padding-top:4px;font-size:11px}
+#lootgoblin-compact .cl-result-text{flex:1;min-width:0}
+#lootgoblin-compact .cl-result button{font-size:10px;padding:1px 4px;min-height:17px}
+#lootgoblin-compact .cl-result strong{font-weight:500}
+#lootgoblin-compact .cl-bottom{display:flex;gap:5px;flex-wrap:wrap;padding:2px 7px 7px;align-items:center}
+#lootgoblin-compact .cl-bottom .cl-meta{margin-right:auto}
+#lootgoblin-compact .cl-bottom button{font-size:11px}
+#lootgoblin-compact .cl-settings{display:grid;gap:10px;padding:12px;border-bottom:1px solid var(--cl-line)}
+#lootgoblin-compact .cl-field{display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap}
+#lootgoblin-compact input[type=number]{width:65px;background:var(--cl-panel);border:1px solid var(--cl-line);padding:4px}
+#lootgoblin-compact select{background:var(--cl-panel);border:1px solid var(--cl-line);padding:4px;max-width:100%}
+#lootgoblin-compact details>div{display:grid;gap:10px;padding-top:10px}
+#lootgoblin-compact summary{cursor:pointer}
+#lootgoblin-compact .cl-tabs{padding:6px 6px 0;display:flex;flex-wrap:wrap;gap:4px}
+#lootgoblin-compact .cl-tabs button{flex:1;font-size:11px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#lootgoblin-compact .cl-empty{padding:14px;color:var(--cl-muted)}
+#lootgoblin-compact .cl-spacious{max-width:480px}
+#lootgoblin-compact .cl-spacious .cl-item{padding:14px}
+#lootgoblin-compact .cl-spacious .cl-header{min-height:58px}
+#lootgoblin-compact .cl-spacious td{padding-top:6px;padding-bottom:6px;height:27px}
+#lootgoblin-compact .cl-spacious tr.cl-group-start td{padding-top:10px}
+#lootgoblin-compact .cl-spacious .cl-bar{height:5px;margin:10px 0}
+#lootgoblin-compact .cl-spacious .cl-result{min-height:35px;font-size:12px}
+#lootgoblin-compact .cl-windows{max-width:none}
+#lootgoblin-compact .cl-windows .cl-items{grid-template-columns:repeat(2,minmax(0,1fr))}
+#lootgoblin-compact .cl-download{max-width:400px;margin:8px auto 0;font-size:11px;color:var(--cl-muted);display:flex;flex-wrap:wrap;gap:8px}
+#lootgoblin-compact .cl-download a{color:var(--cl-blue)}
+@media(max-width:640px){#lootgoblin-compact .cl-windows .cl-items{grid-template-columns:1fr}}
+@media(pointer:coarse){#lootgoblin-compact button{min-height:36px}#lootgoblin-compact .cl-actions button{min-height:36px}#lootgoblin-compact .cl-actions{gap:4px}#lootgoblin-compact input,#lootgoblin-compact select{font-size:16px}}
 </style>
 <div class="cl-stage viz-dotted-background">
  <div class="cl-preview-label">SIMULATED PREVIEW · not captured in WoW</div>
@@ -81,7 +81,7 @@
 </div>
 <script>
 (()=>{
- const root=document.getElementById('clearloot-compact'),app=root.querySelector('.cl-app');
+ const root=document.getElementById('lootgoblin-compact'),app=root.querySelector('.cl-app');
  const prefs={compact:true,groupSeparators:true,showPassed:true,closeAfter:20,pauseHover:true,layout:'stack'};
  const saved=window.openai?.widgetState?.modelContent?.compactPreferences;
  if(saved)Object.assign(prefs,saved);
@@ -121,7 +121,7 @@
   app.className='cl-app'+(prefs.compact?'':' cl-spacious')+(prefs.layout==='windows'?' cl-windows':'');
   const outstanding=items.filter(i=>!i.result);
   const allChosen=outstanding.every(i=>completion(i).full);
-  app.innerHTML=`<div class="cl-top"><span class="cl-brand">${history?'HISTORY':'CLEARLOOT'} · ${visible.length}</span><button data-action="history" aria-pressed="${history}">History</button><button data-action="settings" aria-pressed="${settings}">Settings</button></div>
+  app.innerHTML=`<div class="cl-top"><span class="cl-brand">${history?'HISTORY':'LOOTGOBLIN'} · ${visible.length}</span><button data-action="history" aria-pressed="${history}">History</button><button data-action="settings" aria-pressed="${settings}">Settings</button></div>
   ${settings?`<div class="cl-settings"><label><input type="checkbox" data-setting="compact" ${prefs.compact?'checked':''}> Compact panels</label><label class="cl-field">Multiple items<select data-setting="layout"><option value="stack" ${prefs.layout==='stack'?'selected':''}>Stacked panels</option><option value="tabs" ${prefs.layout==='tabs'?'selected':''}>Tabbed window</option><option value="windows" ${prefs.layout==='windows'?'selected':''}>Separate windows</option></select></label><label class="cl-field">Close result after seconds (0 = keep)<input type="number" min="0" max="300" value="${prefs.closeAfter}" data-setting="closeAfter" aria-label="Close result after seconds"></label><label><input type="checkbox" data-setting="pauseHover" ${prefs.pauseHover?'checked':''}> Pause closing while hovered</label><details><summary>Advanced</summary><div><label><input type="checkbox" data-setting="groupSeparators" ${prefs.groupSeparators?'checked':''}> Separate choice groups</label><label><input type="checkbox" data-setting="showPassed" ${prefs.showPassed?'checked':''}> Show players who passed</label></div></details></div>`:''}
   ${prefs.layout==='tabs'?`<div class="cl-tabs" role="group" aria-label="Select loot item">${visible.map(i=>`<button data-tab="${i.id}" aria-pressed="${selected===i.id}" data-tooltip="${esc(i.name)}">${esc(i.name.split(' ').slice(0,2).join(' '))}</button>`).join('')}</div>`:''}
   <div class="cl-items">${shown.map(card).join('')||'<div class="cl-empty">No pending rolls. Results are in History.</div>'}</div>

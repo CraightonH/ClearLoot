@@ -315,7 +315,7 @@ function A.UpdateCard(f,r)
 end
 function A.BuildUI()
     local f=panel(UIParent); A.window=f; f:SetFrameStrata("DIALOG"); movable(f,true)
-    f.title=text(f,14); f.title:SetPoint("TOPLEFT",13,-14); f.title:SetText("CLEARLOOT")
+    f.title=text(f,14); f.title:SetPoint("TOPLEFT",13,-14); f.title:SetText("LOOTGOBLIN")
     local settings=button(f,"Settings",75,function() A.OpenSettings() end); settings:SetPoint("TOPRIGHT",-12,-9)
     local history=button(f,"History",70,function() A.OpenHistory("drops") end)
     history:SetPoint("RIGHT",settings,"LEFT",-5,0)
@@ -345,7 +345,7 @@ function A.Render()
         f:ClearAllPoints(); f:SetPoint("CENTER",UIParent,"CENTER",db.x,db.y)
     end
     f.context:SetShown(not db.compact)
-    f.title:SetText(db.compact and ((A.historyView and "HISTORY" or "CLEARLOOT").." · "..#visible) or "CLEARLOOT")
+    f.title:SetText(db.compact and ((A.historyView and "HISTORY" or "LOOTGOBLIN").." · "..#visible) or "LOOTGOBLIN")
     f.title:SetFont(STANDARD_TEXT_FONT,db.compact and 12 or 14,"")
     f.context:SetText((A.historyView and "SESSION HISTORY" or "GROUP LOOT").."  ·  "..#visible.." item(s)")
     f.content:SetWidth(db.width-32)
@@ -417,7 +417,7 @@ function A.BuildSettings(parent)
     if not parent then
         f:SetSize(480,640); f:SetPoint("CENTER"); f:SetFrameStrata("FULLSCREEN_DIALOG"); movable(f,false)
     end
-    local title=text(f,16); title:SetPoint("TOPLEFT",18,-18); title:SetText("ClearLoot settings")
+    local title=text(f,16); title:SetPoint("TOPLEFT",18,-18); title:SetText("LootGoblin settings")
     if not parent then local close=button(f,"Close",65,function() f:Hide() end); close:SetPoint("TOPRIGHT",-14,-14) end
     local common=CreateFrame("Frame",nil,f); common:SetAllPoints(); local advanced=CreateFrame("Frame",nil,f); advanced:SetAllPoints(); advanced:Hide()
     local toggle=button(f,"Advanced",100,function()
@@ -461,7 +461,7 @@ function A.BuildSettings(parent)
     number(common,"scale","UI scale (0.65–1.6)",190,0.65,1.6)
     check(common,"pauseHover","Pause closing while hovered",235)
     check(common,"locked","Lock window position",275)
-    local modes={native="Extend Blizzard loot frames",custom="Standalone ClearLoot panels",none="Blizzard UI only"}
+    local modes={native="Extend Blizzard loot frames",custom="Standalone LootGoblin panels",none="Blizzard UI only"}
     local mode=button(common,modes[A.db.presentation],240,function(self)
         A.db.presentation=({native="custom",custom="none",none="native"})[A.db.presentation]
         A.db.replaceNative=A.db.presentation=="custom"
@@ -486,7 +486,7 @@ function A.BuildSettings(parent)
     check(advanced,"groupSeparators","Separate Need / Greed / Pass groups",464)
     local sort=button(advanced,"Toggle player sorting",180,function()
         A.db.sort=A.db.sort=="name" and "priority" or "name"; A.Render()
-        print("ClearLoot: within each choice group, sort by "..(A.db.sort=="name" and "name" or "roll"))
+        print("LootGoblin: within each choice group, sort by "..(A.db.sort=="name" and "name" or "roll"))
     end); sort:SetPoint("TOPLEFT",20,-506)
     local reset=button(advanced,"Reset position",130,function() A.db.x=0; A.db.y=180; A.db.lootPositions={}; A.Render() end); reset:SetPoint("TOPLEFT",20,-545)
     number(advanced,"archiveLimit","Persistent history: maximum drops",585,100,50000)
@@ -494,9 +494,9 @@ function A.BuildSettings(parent)
 end
 
 function A.RegisterSettings()
-    local f=CreateFrame("Frame", "ClearLootSettingsPanel", UIParent); f.name="ClearLoot"; f:Hide()
+    local f=CreateFrame("Frame", "LootGoblinSettingsPanel", UIParent); f.name="LootGoblin"; f:Hide()
     if Settings and Settings.RegisterCanvasLayoutCategory and Settings.RegisterAddOnCategory then
-        A.settingsCategory=Settings.RegisterCanvasLayoutCategory(f,"ClearLoot")
+        A.settingsCategory=Settings.RegisterCanvasLayoutCategory(f,"LootGoblin")
         Settings.RegisterAddOnCategory(A.settingsCategory)
         local scroll=CreateFrame("ScrollFrame",nil,f,"UIPanelScrollFrameTemplate")
         scroll:SetPoint("TOPLEFT",0,-8); scroll:SetPoint("BOTTOMRIGHT",-30,8)

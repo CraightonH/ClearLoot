@@ -31,13 +31,13 @@ function A.OpenBetRecord(round)
         scroll:SetPoint("TOPLEFT",16,-50); scroll:SetPoint("BOTTOMRIGHT",-34,46)
         f.content=CreateFrame("Frame",nil,scroll); f.content:SetWidth(670); scroll:SetScrollChild(f.content)
         f.text=text(f.content,12,0,0,655)
-        text(f,11,16,-542,700):SetText("Payment marks are local notes, not proof of a transfer. ClearLoot never opens trades or moves money.")
+        text(f,11,16,-542,700):SetText("Payment marks are local notes, not proof of a transfer. LootGoblin never opens trades or moves money.")
     end
     f.title:SetText("Side-bet ledger · "..(M.states[round.state] or round.state))
     local content=f.content
     local lines={A.RecordDate(round.timestamp).." UTC",round.itemLink or round.itemName or "Unknown item",
         "Allowed selected: <= "..round.percent.."%; cutoff: "..round.cutoff.." seconds",
-        round.state=="VOID" and ("VOID · "..message(round.reason)) or (round.state=="SETTLED" and "Honor-system settlement; no gold moved by ClearLoot" or "Waiting for friends' bets and the loot result"),"","Bets:"}
+        round.state=="VOID" and ("VOID · "..message(round.reason)) or (round.state=="SETTLED" and "Honor-system settlement; no gold moved by LootGoblin" or "Waiting for friends' bets and the loot result"),"","Bets:"}
     for _,e in ipairs(round.entries) do lines[#lines+1]=name(round,e.bettor).." → "..name(round,e.target).." · "..M.Money(e.stake) end
     if #round.entries==0 then lines[#lines+1]="None" end
     if round.pool then lines[#lines+1]=""; lines[#lines+1]="Pledged pool: "..M.Money(round.pool) end
@@ -112,7 +112,7 @@ end
 function A.OpenBets()
     if not A.betWindow then
         local f=panel(); A.betWindow=f; f:SetSize(760,650); f.page=1; f.view="ledger"; f.rows={}
-        text(f,15,16,-16,600):SetText("ClearLoot · side-bet ledger")
+        text(f,15,16,-16,600):SetText("LootGoblin · side-bet ledger")
         button(f,"Close",65,680,-12,function() f:Hide() end)
         text(f,12,16,-53,430):SetText("Place bets directly beside players in the loot table.")
         button(f,"Ledger",75,546,-48,function() f.view="ledger"; A.RenderBets() end)

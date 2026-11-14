@@ -23,7 +23,7 @@ end
 function A.OpenExport(filter)
     if A.exportFrame then A.exportFrame:Hide() end
     local f=panel(UIParent); A.exportFrame=f; f:SetSize(720,500); f:SetPoint("CENTER"); movable(f)
-    local title=label(f,14); title:SetPoint("TOPLEFT",16,-16); title:SetText("ClearLoot · copy CSV (Ctrl+A, Ctrl+C)")
+    local title=label(f,14); title:SetPoint("TOPLEFT",16,-16); title:SetText("LootGoblin · copy CSV (Ctrl+A, Ctrl+C)")
     local close=button(f,"Close",65,function() f:Hide() end); close:SetPoint("TOPRIGHT",-12,-12)
     local scroll=CreateFrame("ScrollFrame",nil,f,"UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT",16,-54); scroll:SetPoint("BOTTOMRIGHT",-34,16)
@@ -62,7 +62,7 @@ function A.OpenHistory(view)
     if not A.statsWindow then
         local f=panel(UIParent); A.statsWindow=f; f:SetSize(820,570); f:SetPoint("CENTER"); movable(f)
         f.view="players"; f.days=0; f.choice="All"; f.groupAliases=false; f.query=""; f.rows={}
-        f.title=label(f,15); f.title:SetPoint("TOPLEFT",16,-16); f.title:SetText("ClearLoot · history and roll statistics")
+        f.title=label(f,15); f.title:SetPoint("TOPLEFT",16,-16); f.title:SetText("LootGoblin · history and roll statistics")
         local close=button(f,"Close",65,function() f:Hide() end); close:SetPoint("TOPRIGHT",-12,-12)
         local players=button(f,"Players",85,function() f.view="players"; f.page=1; A.RenderStats() end); players:SetPoint("TOPLEFT",16,-50)
         local drops=button(f,"Drops",75,function() f.view="drops"; f.page=1; A.RenderStats() end); drops:SetPoint("LEFT",players,"RIGHT",6,0)

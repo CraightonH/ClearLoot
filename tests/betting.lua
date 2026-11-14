@@ -1,6 +1,6 @@
-local base=os.getenv("CLEARLOOT_ADDON") or "ClearLoot"
+local base=os.getenv("LOOTGOBLIN_ADDON") or "LootGoblin"
 local A={}
-for _,file in ipairs({"Model.lua","BetModel.lua","BetComms.lua"}) do assert(loadfile(base.."/"..file))("ClearLoot",A) end
+for _,file in ipairs({"Model.lua","BetModel.lua","BetComms.lua"}) do assert(loadfile(base.."/"..file))("LootGoblin",A) end
 local M=A.BetModel; local count=0
 local function test(name,fn) fn(); count=count+1; print("PASS "..name) end
 local function snapshot(n,selected,left)
