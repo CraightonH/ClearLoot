@@ -4,16 +4,16 @@ local function number(s,max)
     local n=tonumber(s); if not n or n~=n or n<0 or n>max or n~=math.floor(n) then return nil end; return math.floor(n)
 end
 local function encode(op,...)
-    local fields={op,"2",...}
+    local fields={op,"3",...}
     for i,v in ipairs(fields) do
-        v=tostring(v); if #v>96 or v:find("[|%c]") then return nil end; fields[i]=v
+        v=type(v)=="number" and string.format("%.0f",v) or tostring(v); if #v>96 or v:find("[|%c]") then return nil end; fields[i]=v
     end
     local message=table.concat(fields,"|"); return #message<=255 and message or nil
 end
 local function decode(message)
     if type(message)~="string" or #message>255 or message:find("%c") then return nil end
     local fields={}; for part in (message.."|"):gmatch("(.-)|") do fields[#fields+1]=part end
-    if fields[2]~="2" or #fields>12 then return nil end; return fields
+    if fields[2]~="3" or #fields>13 then return nil end; return fields
 end
 function A.NewBetClient(db,env)
     db.betLedger=type(db.betLedger)=="table" and db.betLedger or {}
@@ -34,9 +34,15 @@ function A.NewBetClient(db,env)
     end
     function C:Send(op,...)
         local message=encode(op,...); if not message then return false end
-        for _,packet in ipairs(self.queue) do if packet.text==message then return true end end
+        local args={...}
+        local key=(op=="BET" and table.concat({op,args[1],args[2],args[3],args[4],args[5]},"|")) or
+            (op=="BOOK" and table.concat({op,args[1],args[2],args[3]},"|"))
+        for _,packet in ipairs(self.queue) do
+            if packet.text==message then return true end
+            if key and packet.key==key then packet.text=message; packet.at=env.now(); return true end
+        end
         if #self.queue>=240 then return false end
-        self.queue[#self.queue+1]={text=message,at=env.now()}; return true
+        self.queue[#self.queue+1]={text=message,at=env.now(),key=key}; return true
     end
     function C:Pump()
         local now=env.now(); self.credits=math.min(800,self.credits+math.max(0,now-self.lastPump)*800); self.lastPump=now
@@ -74,10 +80,10 @@ function A.NewBetClient(db,env)
         local view=A.Copy(snapshot)
         if proof then view.selected=proof.selected; view.leftMs=proof.remaining; view.finished=false end
         local id=tostring(env.selfGUID())..":"..ledger.sessions..":"..ledger.nextID
-        local round,reason=M.New(id,nil,view,{percent=M.PERCENT,cutoff=M.CUTOFF,maxStake=10000000},env.wall())
+        local round,reason=M.New(id,nil,view,{percent=M.PERCENT,cutoff=M.CUTOFF,maxStake=M.MAX_MONEY},env.wall())
         if not round then return nil,reason end
         ledger.nextID=ledger.nextID+1
-        round.protocol=2; round.deadline=deadline(roll,snapshot); round.itemName=roll.name; round.itemLink=roll.link
+        round.protocol=3; round.deadline=deadline(roll,snapshot); round.itemName=roll.name; round.itemLink=roll.link
         local c={record=round,roll=roll,agreements={},lastChange=env.now(),lastPublish=-100,lastSync=-100,
             expires=env.now()+math.max(0,round.deadline-env.wall())+30}
         self.contexts[id]=c; self.byRoll[roll]=c; ledger.records[#ledger.records+1]=round
@@ -96,7 +102,11 @@ function A.NewBetClient(db,env)
     end
     function C:Publish(context)
         local r=context.record; local e=ownEntry(context); if not e then return end
-        self:Send("BET",r.itemKey,r.rosterKey,r.deadline,e.nonce,e.target,e.stake,e.selected,e.remaining,r.percent,r.cutoff)
+        for _,mine in ipairs(r.entries) do
+            if mine.bettor==env.selfGUID() then
+                self:Send("BET",r.itemKey,r.rosterKey,r.deadline,mine.nonce,mine.target,mine.stake,mine.selected,mine.remaining,r.percent,r.cutoff,mine.revision or 1)
+            end
+        end
         self:Send("BOOK",r.itemKey,r.rosterKey,r.deadline,e.nonce,M.Digest(r),#r.entries,r.state=="VOID" and ("V:"..(r.reason or "data")) or "Y")
         context.lastPublish=env.now()
     end
@@ -119,18 +129,27 @@ function A.NewBetClient(db,env)
         return true
     end
     function C:Submit(roll,target,stake)
+        if roll.betClosedReason then return false,roll.betClosedReason end
         local snapshot=env.snapshot(roll)
         if not snapshot then return false,"data" end
         local context=self.byRoll[roll]
         local rules={state=context and context.record.state or "OPEN",percent=math.min(db.betPercent,M.PERCENT),
-            cutoff=math.max(db.betCutoff,M.CUTOFF),rosterKey=context and context.record.rosterKey or snapshot.rosterKey}
-        local valid,reason=M.CanBet(rules,snapshot); if not valid then return false,reason end
-        if not number(tostring(stake),math.min(10000000,db.betMaxGold*10000)) or stake<1 then return false,"stake" end
+            cutoff=math.max(db.betCutoff,M.CUTOFF),closed=context and context.record.closed,closedReason=context and context.record.closedReason,rosterKey=context and context.record.rosterKey or snapshot.rosterKey}
+        local valid,reason=M.CanBet(rules,snapshot)
+        if not valid then
+            if reason=="threshold" or reason=="timer" then roll.betClosedReason=reason end
+            return false,reason
+        end
+        if not number(tostring(stake),M.MAX_MONEY) or stake<1 then return false,"stake" end
         if not snapshot.participants[target] or not snapshot.participants[env.selfGUID()] then return false,"target" end
-        if context and ownEntry(context) then return false,"duplicate" end
         if not context then context,reason=self:Ensure(roll,snapshot); if not context then return false,reason end end
         self.serial=self.serial+1
-        local e={bettor=env.selfGUID(),target=target,stake=stake,nonce=self.nonce..":"..self.serial,
+        local previous=0
+        for _,entry in ipairs(context.record.entries) do
+            if entry.bettor==env.selfGUID() and entry.target==target and entry.nonce==self.nonce then previous=entry.stake end
+        end
+        if stake>M.MAX_MONEY-previous then return false,"stake" end
+        local e={bettor=env.selfGUID(),target=target,stake=previous+stake,nonce=self.nonce,revision=self.serial,
             selected=snapshot.selected,remaining=snapshot.leftMs}
         local ok,why=self:Notice(context,e); if not ok then return false,why end
         -- The click is consent to participate; no discovery/host/acceptance action is required.
@@ -149,14 +168,15 @@ function A.NewBetClient(db,env)
         local untilTime=number(f[5],10000000000); if not untilTime then return end
         local context,roll,snapshot=self:Find(f[3],f[4],untilTime)
         if not db.betsEnabled and not (context and ownEntry(context)) then return end
-        if f[1]=="BET" and #f==12 then
-            local stake=number(f[8],10000000); local selected=number(f[9],40); local remaining=number(f[10],3600000)
+        if f[1]=="BET" and #f==13 then
+            local stake=number(f[8],M.MAX_MONEY); local selected=number(f[9],40); local remaining=number(f[10],3600000)
             local percent=number(f[11],100); local cutoff=number(f[12],30)
-            if not stake or not selected or not remaining or not percent or not cutoff or #f[6]>64 or not snapshot then return end
+            local revision=number(f[13],M.MAX_MONEY)
+            if not stake or not selected or not remaining or not percent or not cutoff or not revision or revision<1 or #f[6]>64 or not snapshot then return end
             if percent~=M.PERCENT or cutoff~=M.CUTOFF then
                 if context then context.error="rules" end; return
             end
-            local e={bettor=sender,target=f[7],stake=stake,nonce=f[6],selected=selected,remaining=remaining}
+            local e={bettor=sender,target=f[7],stake=stake,nonce=f[6],revision=revision,selected=selected,remaining=remaining}
             if not context then
                 if not roll or env.wall()>untilTime+30 then return end
                 -- Validate the originating client's immutable submission facts, not arrival-time loot choices.
@@ -168,11 +188,11 @@ function A.NewBetClient(db,env)
         elseif context and f[1]=="BOOK" and #f==9 then
             local entry
             for _,e in ipairs(context.record.entries) do if e.bettor==sender and e.nonce==f[6] then entry=e; break end end
-            if entry and number(f[8],40)==#context.record.entries and f[7]==M.Digest(context.record) then
+            if entry and number(f[8],M.MAX_MONEY)==#context.record.entries and f[7]==M.Digest(context.record) then
                 context.agreements[sender]=f[7]
                 local reason=f[9]:match("^V:(.+)$")
                 if reason and M.reasons[reason] then
-                    if reason~="threshold" or (context.record.state=="OPEN" and db.betBreachAction~="close") then
+                    if reason~="threshold" then
                         M.Void(context.record,reason); changed()
                     end
                 end
@@ -193,7 +213,7 @@ function A.NewBetClient(db,env)
         end
     end
     function C:Agreed(context)
-        if #context.record.entries<2 then return false end
+        if M.BettorCount(context.record)<2 then return false end
         local digest=M.Digest(context.record)
         for _,e in ipairs(context.record.entries) do if context.agreements[e.bettor]~=digest then return false end end
         return true
@@ -207,12 +227,18 @@ function A.NewBetClient(db,env)
                 elseif s and s.rosterKey==r.rosterKey then
                     local agreed=self:Agreed(c)
                     if agreed then r.state=r.state=="SETTLED" and "SETTLED" or "LOCKED"; r.digest=M.Digest(r) end
+                    if not s.finished then
+                        local allowed,reason=M.Available(s,r.percent)
+                        if not allowed or (s.leftMs and s.leftMs<=r.cutoff*1000) then
+                            r.closed=true; r.closedReason=not allowed and reason or "timer"
+                        end
+                    end
                     if r.state=="OPEN" and not s.finished then
                         local allowed,reason=M.Available(s,r.percent)
                         if not allowed then
-                            if db.betBreachAction=="close" then r.state="LOCKED" else M.Void(r,reason) end
+                            r.state="LOCKED"; r.closed=true; r.closedReason=reason
                             self:Publish(c); changed()
-                        elseif s.leftMs and s.leftMs<=r.cutoff*1000 then r.state="LOCKED"; changed() end
+                        elseif s.leftMs and s.leftMs<=r.cutoff*1000 then r.state="LOCKED"; r.closed=true; r.closedReason="timer"; changed() end
                     end
                     r.host=M.Resolver(r,env.members())
                     if s.confirmed and s.winner and now-c.lastChange>=1 and r.state~="SETTLED" and r.state~="VOID" then
@@ -228,12 +254,12 @@ function A.NewBetClient(db,env)
                             else r.state="LOCKED"; r.digest=M.Digest(r); M.Settle(r,s.winner); c.settledAt=now end
                             changed()
                         else self:RequestSync(c) end
-                        if #r.entries<2 and now-(c.resultSeen or now)>=3 then r.state="UNRESOLVED"; r.reason="few"; changed() end
+                        if M.BettorCount(r)<2 and now-(c.resultSeen or now)>=3 then r.state="UNRESOLVED"; r.reason="few"; changed() end
                     elseif s.allPassed then M.Void(r,"allpass"); changed() end
                 end
             end
             if now>c.expires and r.state~="SETTLED" and r.state~="VOID" then
-                if #r.entries<2 then M.Void(r,"few") else r.state="UNRESOLVED"; r.reason="sync" end
+                if M.BettorCount(r)<2 then M.Void(r,"few") else r.state="UNRESOLVED"; r.reason="sync" end
             end
             if now<=c.expires+10 and (db.betsEnabled or ownEntry(c)) and now-c.lastPublish>=1.5 and (r.state~="SETTLED" or now-(c.settledAt or now)<10) then
                 self:Publish(c)

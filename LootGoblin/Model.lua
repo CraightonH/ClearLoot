@@ -3,7 +3,7 @@ A.defaults = {presentation="native", layout="stack", closeAfter=20, scale=1, wid
     opacity=0.96, locked=false, pauseHover=true, showPassed=true, classColors=true,
     sort="priority", replaceNative=true, historyLimit=60, x=0, y=180,
     maxHeight=650, sound=false, fontSize=11, compact=true, groupSeparators=true,
-    betsEnabled=false, betPercent=20, betCutoff=10, betMaxGold=100, betDefaultGold=5, betBreachAction="void"}
+    betsEnabled=false, betPercent=20, betCutoff=10}
 A.labels = {[0]="Need", [1]="Need (off spec)", [2]="Transmog", [3]="Greed",
     [4]="Waiting", [5]="Pass"}
 A.colors = {[0]="73c7ff", [1]="73c7ff", [2]="d6a2ff", [3]="ffce70",
@@ -45,14 +45,12 @@ function A.InitDB(db)
     if db.layout~="stack" and db.layout~="tabs" and db.layout~="windows" then db.layout="stack" end
     local ranges={closeAfter={0,300},scale={0.65,1.6},width={380,650},rowHeight={18,32},
         opacity={0.4,1},historyLimit={10,200},maxHeight={300,900},fontSize={10,18},x={-4000,4000},y={-4000,4000},
-        betPercent={0,20},betCutoff={10,30},betMaxGold={1,1000},betDefaultGold={0.0001,1000}}
+        betPercent={0,20},betCutoff={10,30}}
     for k,r in pairs(ranges) do
         if db[k]~=db[k] then db[k]=A.defaults[k] end
         db[k]=math.max(r[1],math.min(r[2],db[k]))
     end
     db.betPercent=math.floor(db.betPercent); db.betCutoff=math.floor(db.betCutoff)
-    db.betMaxGold=math.floor(db.betMaxGold)
-    if db.betBreachAction~="void" and db.betBreachAction~="close" then db.betBreachAction="void" end
     return db
 end
 function A.NewRoll(id, link, now, duration, historyNow)

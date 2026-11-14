@@ -2,7 +2,7 @@
 
 Native group-loot extensions and persistent roll history for **WoW Forever 1.60.1**, provisionally targeting Interface `16001`.
 
-**Status: 0.7.0 alpha.** The code has passed simulated model, history, betting, UI, and browser checks. It has not been tested inside a running Forever client. The browser previews show the loot/history interface using illustrative data; they are not in-game screenshots and do not demonstrate networked side bets.
+**Status: 0.8.0 alpha.** The code has passed simulated model, history, betting, UI, and browser checks. It has not been tested inside a running Forever client. The browser previews show the loot/history interface using illustrative data; they are not in-game screenshots and do not demonstrate networked side bets.
 
 ## Features
 
@@ -33,7 +33,7 @@ You can also build an addon-only ZIP:
 python3 scripts/package.py
 ```
 
-This writes `dist/LootGoblin-0.7.0-alpha.zip`. Extract it into `Interface/AddOns/`.
+This writes `dist/LootGoblin-0.8.0-alpha.zip`. Extract it into `Interface/AddOns/`.
 
 Drag the native item header, item icon, or any non-button area of the player
 table to move that item and its table together. Loot buttons retain their clicks. Each of the four loot slots remembers its
@@ -102,19 +102,20 @@ Data is kept in account-level `LootGoblinDB` SavedVariables and shared by your c
 
 ## Side bets: place a prediction and watch the pool
 
-Each player's loot-table row has **1g / 5g / 10g** quick-bet buttons. Click an
-amount beside a player to place that prediction immediately in one click. Change
-**Middle bet** on the item panel to use a custom amount in the middle button;
-that amount is remembered. Your prediction, the live pool, and your result stay
-on the item panel. `/lg bets` is only the ledger and rules; placing bets does
-not open a dedicated menu. The demo supports isolated sample bets without sending
-notifications or recording pledges.
+Each player's loot-table row has **1c / 1s / 1g** buttons: one copper, one
+silver, and one gold per click. Click repeatedly to increase your stake, and back
+as many different players as you want. Your stake beneath each backed player,
+your total, and the live pool update directly on the item panel. There is no
+single-prediction lockout, custom-amount field, or personal pledge cap.
+`/lg bets` is only the ledger and rules. Demo clicks are isolated simulations.
 
 There is no manual hosting, peer-discovery prerequisite, confirmation/retry step, matching-settings setup, or five-second hosted window. LootGoblin elects a bettor to resolve the agreed pool automatically, and normal loot choices are never held. Only bettors need the addon.
 
-Each client validates its own bet at placement: **20% selected or less**, **more than 10 seconds remaining**, a reliably identified item/eligible roster, and a positive pledge within the player's personal limit. Personal limits can be stricter without requiring friends to change theirs. In-time notifications can arrive asynchronously after the cutoff; arrival time is not a second host approval gate.
+Each client validates its own bet at placement: **20% selected or less**, **more than 10 seconds remaining**, a reliably identified item/eligible roster, and a positive copper amount. Personal time/percentage limits can be stricter without requiring friends to change theirs. In-time notifications can arrive asynchronously after the cutoff; arrival time is not a second host approval gate.
 
-The existing threshold-void policy remains for an open pool that has not yet been agreed. An agreed pool survives later normal loot choices. Reaching the timer cutoff stops new submissions while retaining valid earlier bets.
+Crossing either the time or selection cutoff closes further additions without cancelling previously accepted stakes. A closed betting window does not reopen. Correct bettors split the pool in proportion to their total stakes on the confirmed winner, with stakes on other players still counted in their net result.
+
+This uses betting protocol version 3. All participating bettors need the updated addon.
 
 Resolution is an **honor-system ledger**. LootGoblin never handles gold or trades. Correct bettors share the pledged pool proportionally, with exact copper rounding and net amounts owed. The item winner, prediction results, and persistent ledger are shown automatically.
 
@@ -154,7 +155,7 @@ Or use `make test LUA=lua5.1`. On Linux with Python and `liblua5.4.so.0` install
 python3 tests/run_lua.py tests/model.lua tests/history.lua tests/betting.lua tests/integration.lua
 ```
 
-The suites cover 16 model scenarios, 12 history scenarios, 28 asynchronous betting scenarios, and mocked addon integration. Betting checks include inclusive percentage boundaries, native timer validation, immediate placement, canonical bet sets, asynchronous joining, late notifications, automatic agreement and resolver failover, exact settlement, and 40-client synchronization. Mocked game bindings verify group-message routing, inline amount editing, one-click row bets, live pool, normal loot choices without a hold, and local paid notes. GitHub Actions runs these against Lua 5.1 and 5.4 and verifies addon packaging.
+The suites cover 16 model scenarios, 12 history scenarios, 36 asynchronous betting scenarios, and mocked addon integration. Betting checks include inclusive percentage boundaries, native timer validation, immediate placement, canonical bet sets, asynchronous joining, late notifications, automatic agreement and resolver failover, exact settlement, and 40-client synchronization. Mocked game bindings verify group-message routing, repeated denomination clicks, one-click row bets, live pool, normal loot choices without a hold, and local paid notes. GitHub Actions runs these against Lua 5.1 and 5.4 and verifies addon packaging.
 
 Optional browser checks:
 
@@ -188,7 +189,7 @@ The complete usage notes and source references are in [LootGoblin/README.txt](Lo
 | --- | --- |
 | `LootGoblin/Model.lua` | Roll state, matching, sorting, completion, and close timing |
 | `LootGoblin/History.lua` | Persistent records, identities, aliases, statistics, and CSV |
-| `LootGoblin/BetModel.lua` | Betting gates, immutable books, and exact honor settlements |
+| `LootGoblin/BetModel.lua` | Betting gates, cumulative stake books, and exact honor settlements |
 | `LootGoblin/BetComms.lua` | Peer protocol, native timer/history bindings, and synchronization |
 | `LootGoblin/BetUI.lua` | Opt-in rules, predictions, and the persistent honor ledger |
 | `LootGoblin/UI.lua` | Loot tables, optional panels, and registered game settings |

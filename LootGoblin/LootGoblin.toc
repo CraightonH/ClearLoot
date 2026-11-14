@@ -2,7 +2,7 @@
 ## Title: LootGoblin
 ## Notes: Native loot tables, roll history, and optional honor-ledger side bets.
 ## Author: LootGoblin contributors
-## Version: 0.7.0-alpha
+## Version: 0.8.0-alpha
 ## SavedVariables: LootGoblinDB
 Model.lua
 History.lua

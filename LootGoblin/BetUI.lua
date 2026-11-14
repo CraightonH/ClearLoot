@@ -69,41 +69,54 @@ function A.OpenBetRecord(round)
     f:Show()
 end
 function A.InlineBetState(r)
-    local state={visible=r.demo or A.bettingAvailable}
+    local state={visible=r.demo or A.bettingAvailable,pool=0}
     if not state.visible then return state end
     if r.demo then
-        state.mine=r.demoBet; state.canBet=not r.finished and not r.dismissed and not r.demoBet
-        state.pool=r.demoBet and r.demoBet.stake or 0
-        state.reason=r.finished and "finished" or (r.demoBet and "duplicate" or nil)
+        state.mine=r.demoTotal and {stake=r.demoTotal,targets=r.demoBets} or nil
+        state.canBet=not r.finished and not r.dismissed and GetTime()<r.started+r.duration-10
+        state.pool=r.demoTotal or 0
+        state.reason=not state.canBet and "finished" or nil
         return state
     end
     local context=A.betClient and A.betClient.byRoll[r]
     state.record=context and context.record
     state.pool=state.record and state.record.pool or 0
     local guid=UnitGUID and UnitGUID("player")
+    local mine={stake=0,targets={}}
     for _,entry in ipairs(state.record and state.record.entries or {}) do
-        if entry.bettor==guid then state.mine=entry; break end
+        if entry.bettor==guid then
+            mine.stake=mine.stake+entry.stake
+            mine.targets[entry.target]=(mine.targets[entry.target] or 0)+entry.stake
+        end
     end
+    state.mine=mine.stake>0 and mine or nil
     local snapshot=A.BetSnapshot(r); state.snapshot=snapshot
-    if state.mine then state.reason="duplicate"
-    elseif not snapshot then state.reason="data"
+    if not snapshot then state.reason="data"
     else
         state.canBet,state.reason=M.CanBet({state=state.record and state.record.state or "OPEN",
             percent=math.min(A.db.betPercent,M.PERCENT),cutoff=math.max(A.db.betCutoff,M.CUTOFF),
+            closed=r.betClosedReason or (state.record and state.record.closed),closedReason=r.betClosedReason or (state.record and state.record.closedReason),
             rosterKey=state.record and state.record.rosterKey or snapshot.rosterKey},snapshot)
+        if state.reason=="threshold" or state.reason=="timer" then r.betClosedReason=state.reason end
         if not snapshot.participants[guid] then state.canBet=false; state.reason="target" end
     end
     return state
 end
-function A.PlaceInlineBet(r,player,gold)
-    local stake=M.ParseGold(tostring(gold))
-    if not stake or stake>A.db.betMaxGold*10000 then r.inlineBetError=message("stake"); A.Render(); return false end
+function A.PlaceInlineBet(r,player,stake)
+    if type(stake)~="number" or stake~=stake or stake<1 or stake>M.MAX_MONEY or stake~=math.floor(stake) then
+        r.inlineBetError=message("stake"); A.Render(); return false
+    end
     local state=A.InlineBetState(r)
     if not state.canBet then r.inlineBetError=message(state.reason); A.Render(); return false end
     local target=player.playerGUID or (r.demo and player.playerName)
     local ok,reason
     if r.demo and target then
-        r.demoBet={target=target,targetName=player.playerName,stake=stake}; ok=true
+        if stake>M.MAX_MONEY-(r.demoTotal or 0) then reason="stake"
+        else
+            r.demoBets=r.demoBets or {}
+            r.demoBets[target]=(r.demoBets[target] or 0)+stake
+            r.demoTotal=(r.demoTotal or 0)+stake; ok=true
+        end
     elseif A.bettingAvailable and target then ok,reason=A.betClient:Submit(r,target,stake)
     else reason="target" end
     r.inlineBetError=not ok and message(reason) or nil
@@ -120,9 +133,7 @@ function A.OpenBets()
         f.rules=CreateFrame("Frame",nil,f); f.rules:SetAllPoints()
         f.ledger=CreateFrame("Frame",nil,f); f.ledger:SetAllPoints()
         local fields={{"betPercent","My maximum selected percentage (inclusive)",100,0,20},
-            {"betCutoff","My minimum remaining seconds",145,10,30},
-            {"betMaxGold","Maximum gold pledged per character",235,1,1000},
-            {"betDefaultGold","Middle quick-bet amount in gold",280,0.0001,1000}}
+            {"betCutoff","My minimum remaining seconds",145,10,30}}
         for _,field in ipairs(fields) do
             local key,title,y,min,max=(table.unpack or unpack)(field)
             text(f.rules,12,20,-y,530):SetText(title)
@@ -131,19 +142,19 @@ function A.OpenBets()
             local function save()
                 local value=tonumber(box:GetText())
                 if value and value==value then
-                    value=math.max(min,math.min(max,value)); if key~="betDefaultGold" then value=math.floor(value) end; A.db[key]=value
+                    value=math.max(min,math.min(max,value)); value=math.floor(value); A.db[key]=value
                 end
                 box:SetText(tostring(A.db[key])); box:ClearFocus(); A.RenderBets()
             end
             box:SetScript("OnEnterPressed",save); box:SetScript("OnEditFocusLost",function()
                 local value=tonumber(box:GetText()); if value and value==value then
-                    value=math.max(min,math.min(max,value)); A.db[key]=key=="betDefaultGold" and value or math.floor(value)
+                    value=math.max(min,math.min(max,value)); A.db[key]=math.floor(value)
                 end
                 box:SetText(tostring(A.db[key]))
             end)
         end
         local help=text(f.rules,12,20,-345,690); help:SetHeight(220)
-        help:SetText("Shared rules: <=20% selected and more than 10 seconds remaining when a bet is placed. Each client validates its own bet before recording it.\n\nThere is no manual hosting, timed host window, or confirmation step. Bets are shared automatically, and a bettor is selected to resolve the pool in the background. Friends need the same addon version.\n\nOne prediction per character per item. Correct bettors split the pledged pool in proportion to their stakes. No correct predictions means pledges are cancelled.\n\nYou may set stricter personal percentage/time limits or a personal pledge cap. Friends do not need matching settings. Loot choices are never held.")
+        help:SetText("Shared rules: <=20% selected and more than 10 seconds remaining when a bet is placed. Each client validates its own bet before recording it.\n\nThere is no manual hosting, timed host window, or confirmation step. Bets are shared automatically, and a bettor is selected to resolve the pool in the background. Friends need the same addon version.\n\nClick 1c, 1s, or 1g repeatedly to add stakes to any players until betting closes. Correct bettors split the pledged pool in proportion to their stakes. No correct predictions means pledges are cancelled.\n\nYou may set stricter personal percentage/time limits. Friends do not need matching settings. Loot choices are never held.")
         f.pageText=text(f.ledger,12,20,-100,600)
         button(f.ledger,"<",30,650,-94,function() f.page=math.max(1,f.page-1); A.RenderBets() end)
         button(f.ledger,">",30,688,-94,function() f.page=f.page+1; A.RenderBets() end)
@@ -166,7 +177,7 @@ function A.RenderBets()
             shown=shown+1; local row=f.rows[shown]
             if not row then row=CreateFrame("Button",nil,f.content); row.label=text(row,11,4,-5,680); row.label:SetHeight(35); f.rows[shown]=row end
             row:Show(); row:SetSize(695,42); row:ClearAllPoints(); row:SetPoint("TOPLEFT",0,-(shown-1)*42)
-            row.label:SetText(A.RecordDate(record.timestamp).." · "..(record.itemName or "Item").." · "..(M.states[record.state] or record.state).."\n"..#record.entries.." accepted bets"..(record.reason and (" · "..message(record.reason)) or ""))
+            row.label:SetText(A.RecordDate(record.timestamp).." · "..(record.itemName or "Item").." · "..(M.states[record.state] or record.state).."\n"..#record.entries.." stake positions"..(record.reason and (" · "..message(record.reason)) or ""))
             row:SetScript("OnClick",function() A.OpenBetRecord(record) end)
         end
     end

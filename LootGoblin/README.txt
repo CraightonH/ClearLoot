@@ -1,4 +1,4 @@
-LootGoblin 0.7.0-alpha
+LootGoblin 0.8.0-alpha
 
 A native group-loot extension targeting WoW Forever 1.60.1 (Interface 16001).
 The exact client build has not been confirmed. This is an alpha, checked with
@@ -15,7 +15,7 @@ INSTALL
 5. Run /lg for settings. If you want the default popups back, /lg native
    restores them immediately and saves that preference.
 
-NATIVE PRESENTATION (0.7.0)
+NATIVE PRESENTATION (0.8.0)
 
 Settings are under Options > AddOns > LootGoblin; /lg opens that category.
 The default mode extends Blizzard's original loot frames with a player table.
@@ -160,31 +160,30 @@ COMMANDS
 
 SIDE BETS: PLACE A PREDICTION AND WATCH THE POOL
 
-Click 1g, 5g, or 10g beside a player in the loot table to immediately bet that
-amount on that player. Edit Middle bet directly on the item panel to customize
-the middle button. Your prediction and pool remain on the panel. /lg bets
-opens only the ledger and rules; there is no separate betting menu. Demo bets
-are local simulations and never enter the ledger or addon messaging. No manual host, invitation,
-confirmation/retry step, matched settings, or five-second hosted window is needed.
-Loot choices are never delayed. A bettor resolves the shared pool automatically.
+Click 1c, 1s, or 1g beside a player to add one copper, one silver, or one gold.
+Keep clicking while betting is open; back any number of players and increase
+stakes on the same player repeatedly. Each row shows your accumulated stake.
+There is no one-prediction lockout, custom amount field, or personal pledge cap.
+Your total and the pool remain on the panel. /lg bets opens the ledger and rules.
+Demo bets remain local simulations with no ledger entries or network messages.
 
 Each client validates its own placement: <=20% of eligible rollers selected,
-more than 10 seconds remaining, reliable item/roster data, and a positive pledge
-within its personal cap. Stricter personal limits do not require friends to
-change settings. Valid notifications may arrive after the cutoff; their original
+more than 10 seconds remaining, reliable item/roster data, and positive copper.
+Stricter personal time/percentage limits do not require friends to change settings. Valid notifications may arrive after the cutoff; their original
 placement facts are used rather than arrival-time choices or a host approval.
 
-The earlier threshold-void rule remains for open pools that have not yet agreed.
-Once a pool is shared and agreed, later normal choices do not void it. The timer
-cutoff stops new submissions without discarding valid earlier bets.
+Either cutoff closes further additions without discarding accepted stakes.
+A closed window stays closed. Stakes on multiple players all enter the pool;
+payout shares use each bettor's combined stakes on the confirmed winner.
 
 Correct bettors share the pledged pool proportionally; the ledger records net
 amounts owed. No gold is collected or moved, no balances are checked, and no
 trades are opened. Local paid marks are only notes. Late valid notifications can
 revise a pool, retaining prior paid notes separately for manual reconciliation.
 
-Protocol version 2 automatically merges author-attributed bet notifications,
+Protocol version 3 automatically merges author-attributed cumulative stake updates,
 shares book checksums, requests replays, and elects a connected bettor to resolve.
+All participating bettors need this updated protocol version.
 Interrupted pools retain their predictions as Waiting to reconcile. Turning
 friend notifications off does not withdraw a placed bet. Version 1 clients need
 to be updated. Remote submission facts are honor-system statements, not server
@@ -225,7 +224,7 @@ Before treating this as ready for regular play, validate on your actual client:
 * /lg native restores native popups and mouse input.
 
 Validation delivered with this alpha: 16 model scenarios, 12 persistent-history
-scenarios, 28 asynchronous betting scenarios, and a mocked runtime
+scenarios, 36 asynchronous betting scenarios, and a mocked runtime
 integration check exercising UI loading, controls, all layouts, native restore,
 duplicates, unknown outcomes, demo isolation, compact height, group separators,
 and the completion bar's yellow/green behavior. History scenarios cover persistent

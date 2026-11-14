@@ -152,7 +152,8 @@ function A.UpdateCard(f,r)
     local rollWidth=inline and 26 or 45
     local choiceWidth=inline and 44 or rowWidth*0.33
     local nameWidth=inline and (rowWidth-betWidth-rollWidth-choiceWidth-9) or rowWidth*0.48
-    local amounts={1,db.betDefaultGold,10}
+    local amounts={1,100,10000}
+    local amountLabels={"1c","1s","1g"}
     if f.tableOnly then
         for _,widget in ipairs({f.icon,f.meta}) do widget:Hide() end
         for _,widget in pairs(f.buttons) do widget:Hide() end
@@ -219,7 +220,18 @@ function A.UpdateCard(f,r)
         row.player=p
         row:Show(); row:SetSize(rowWidth,db.rowHeight); row:ClearAllPoints()
         row:SetPoint("TOPLEFT",12,-rowY); row.separator:SetShown(not not boundary)
-        rowY=rowY+db.rowHeight; previousGroup=group
+        local target=p.playerGUID or (r.demo and p.playerName)
+        local yourStake=betting.mine and betting.mine.targets[target]
+        if not row.stake then
+            row.stake=text(row,9); row.stake:SetPoint("TOPLEFT",0,-db.rowHeight+1)
+            row.stake:SetPoint("TOPRIGHT",0,-db.rowHeight+1); row.stake:SetHeight(11)
+            row.stake:SetTextColor(1,0.82,0.2)
+        end
+        row.stake:ClearAllPoints(); row.stake:SetPoint("TOPLEFT",0,-db.rowHeight+1)
+        row.stake:SetPoint("TOPRIGHT",0,-db.rowHeight+1)
+        row.stake:SetShown(not not yourStake)
+        row.stake:SetText(yourStake and ("Your bet: "..A.BetModel.Money(yourStake)) or "")
+        rowY=rowY+db.rowHeight+(yourStake and 12 or 0); previousGroup=group
         row.name:SetWidth(nameWidth); row.choice:SetWidth(choiceWidth)
         for _,t in ipairs({row.name,row.choice,row.roll}) do t:SetFont(STANDARD_TEXT_FONT,db.fontSize,"") end
         row.roll:ClearAllPoints(); row.roll:SetWidth(rollWidth)
@@ -236,11 +248,11 @@ function A.UpdateCard(f,r)
                 end)
             end
             b:SetSize(26,db.rowHeight); b:ClearAllPoints(); b:SetPoint("RIGHT",-(3-slot)*28,0)
-            b:SetText(tostring(amounts[slot]).."g"); b:SetShown(inline)
+            b:SetText(amountLabels[slot]); b:SetShown(inline)
             local target=p.playerGUID or (r.demo and p.playerName)
             local eligible=target and (r.demo or (betting.snapshot and betting.snapshot.participants[target]))
-            b:SetEnabled(inline and betting.canBet and eligible and amounts[slot]<=db.betMaxGold)
-            b.betTooltip=(r.demo and "Demo: " or "").."Bet "..amounts[slot].."g on "..(p.playerName or "Unknown")..
+            b:SetEnabled(inline and betting.canBet and eligible)
+            b.betTooltip=(r.demo and "Demo: " or "").."Add "..amountLabels[slot].." on "..(p.playerName or "Unknown")..
                 (betting.reason and ("\n"..(A.BetModel.reasons[betting.reason] or betting.reason)) or "")
             local amount=amounts[slot]; local player=p
             b:SetScript("OnClick",function() A.PlaceInlineBet(r,player,amount) end)
@@ -268,40 +280,25 @@ function A.UpdateCard(f,r)
     else f.result:SetTextColor(0.85,0.88,0.8) end
     if not f.betLine then
         f.betLine=CreateFrame("Frame",nil,f); f.betLine:SetHeight(24)
-        f.betLabel=text(f.betLine,10); f.betLabel:SetPoint("LEFT"); f.betLabel:SetText("Middle bet:")
-        f.quickStake=CreateFrame("EditBox",nil,f.betLine,"InputBoxTemplate")
-        f.quickStake:SetSize(42,22); f.quickStake:SetPoint("LEFT",60,0)
-        f.quickStake:SetAutoFocus(false); f.quickStake:SetMaxLetters(8)
-        f.betUnit=text(f.betLine,10); f.betUnit:SetPoint("LEFT",f.quickStake,"RIGHT",2,0); f.betUnit:SetText("g")
-        f.betSummary=text(f.betLine,10); f.betSummary:SetPoint("LEFT",118,0); f.betSummary:SetPoint("RIGHT"); f.betSummary:SetHeight(24)
-        local function commit()
-            local gold=tonumber(f.quickStake:GetText())
-            if gold and A.BetModel.ParseGold(tostring(gold)) and gold<=A.db.betMaxGold then
-                A.db.betDefaultGold=gold
-            end
-            f.quickStake:SetText(tostring(A.db.betDefaultGold)); A.Render()
-        end
-        f.quickStake:SetScript("OnEnterPressed",function() f.quickStake:ClearFocus(); commit() end)
-        f.quickStake:SetScript("OnEditFocusLost",commit)
-        f.quickStake:SetScript("OnEscapePressed",function() f.quickStake:ClearFocus() end)
+        f.betSummary=text(f.betLine,10); f.betSummary:SetPoint("LEFT"); f.betSummary:SetPoint("RIGHT"); f.betSummary:SetHeight(24)
     end
     f.betLine:SetShown(inline)
     f.betLine:ClearAllPoints(); f.betLine:SetPoint("TOPLEFT",12,-math.max(rowY,firstRowY+2*db.rowHeight)-5)
     f.betLine:SetPoint("RIGHT",-12,0)
-    if not f.quickStake:HasFocus() then f.quickStake:SetText(tostring(db.betDefaultGold)) end
-    f.betSummary:SetText((r.demo and "Demo pool: " or "Pool: ")..A.BetModel.Money(betting.pool or 0))
+    f.betSummary:SetText((r.demo and "Demo pool: " or "Pool: ")..A.BetModel.Money(betting.pool or 0)..((betting.reason=="timer" or betting.reason=="threshold" or betting.reason=="finished" or betting.reason=="window") and " · Closed" or ""))
     if betting.mine then
-        local target=betting.mine.targetName or (betting.record and betting.record.participants[betting.mine.target]) or betting.mine.target
         local verdict=""
         if r.resultConfirmed and r.winner then
             local winner=r.winner.playerGUID or (r.demo and r.winner.playerName)
-            if winner then verdict=winner==betting.mine.target and " |cff33ff55Bet won|r" or " |cffff5555Bet lost|r" end
+            local balance=betting.record and betting.record.state=="SETTLED" and betting.record.balances and betting.record.balances[UnitGUID("player")]
+            if balance then verdict=" |cffffd100Net: "..(balance>=0 and "+" or "-")..A.BetModel.Money(math.abs(balance)).."|r"
+            elseif winner then verdict=betting.mine.targets[winner] and " · Winner backed" or " · Winner not backed" end
         end
         f.result:SetHeight(34)
-        f.result:SetText(result.."\nBet "..A.BetModel.Money(betting.mine.stake).." on "..(target or "Unknown")..verdict)
+        f.result:SetText(result.."\nYour total: "..A.BetModel.Money(betting.mine.stake)..verdict)
     elseif r.inlineBetError then f.result:SetText(r.inlineBetError)
     elseif inline and not r.finished then
-        f.result:SetText(betting.canBet and (r.demo and "Demo: click an amount beside a player" or "Click an amount beside a player") or
+        f.result:SetText(betting.canBet and (r.demo and "Demo: click amounts to add bets" or "Click amounts to add bets") or
             (A.BetModel.reasons[betting.reason] or "Bets closed"))
     end
     if inline then f.heading:SetText("PLAYER"); f.choiceHeading:Show(); f.rollHeading:Show() end
