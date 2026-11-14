@@ -1,8 +1,8 @@
 ## Interface: 16001
 ## Title: ClearLoot
-## Notes: Per-item group loot decisions, player rolls and explicit results.
+## Notes: Native loot tables, roll history, and optional honor-ledger side bets.
 ## Author: ClearLoot contributors
-## Version: 0.5.0-alpha
+## Version: 0.5.1-alpha
 ## SavedVariables: ClearLootDB
 Model.lua
 History.lua
@@ -11,4 +11,6 @@ BetComms.lua
 UI.lua
 StatsUI.lua
 BetUI.lua
+Demo.xml
+NativeUI.lua
 Core.lua

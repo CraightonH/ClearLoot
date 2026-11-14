@@ -2,8 +2,10 @@ local _,A=...
 local M=A.BetModel
 local function panel()
     local f=CreateFrame("Frame",nil,UIParent,"BackdropTemplate")
-    f:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
-    f:SetBackdropColor(0.045,0.06,0.085,1); f:SetBackdropBorderColor(0.3,0.35,0.4,1)
+    f:SetBackdrop({bgFile="Interface\\FrameGeneral\\UI-Background-Rock",
+        edgeFile="Interface\\DialogFrame\\UI-DialogBox-Border",edgeSize=24,
+        insets={left=6,right=6,top=6,bottom=6}})
+    f:SetBackdropColor(0.12,0.11,0.09,1); f:SetBackdropBorderColor(1,1,1,1)
     f:SetFrameStrata("FULLSCREEN_DIALOG"); f:SetClampedToScreen(true); f:SetMovable(true); f:EnableMouse(true)
     f:RegisterForDrag("LeftButton"); f:SetScript("OnDragStart",function() f:StartMoving() end)
     f:SetScript("OnDragStop",function() f:StopMovingOrSizing() end); f:SetPoint("CENTER")

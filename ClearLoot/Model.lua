@@ -1,5 +1,5 @@
 local _, A = ...
-A.defaults = {layout="stack", closeAfter=20, scale=1, width=400, rowHeight=18,
+A.defaults = {presentation="native", layout="stack", closeAfter=20, scale=1, width=400, rowHeight=18,
     opacity=0.96, locked=false, pauseHover=true, showPassed=true, classColors=true,
     sort="priority", replaceNative=true, historyLimit=60, x=0, y=180,
     maxHeight=650, sound=false, fontSize=11, compact=true, groupSeparators=true,
@@ -30,6 +30,18 @@ function A.InitDB(db)
     for k,v in pairs(A.defaults) do
         if type(db[k])~=type(v) then db[k]=v end
     end
+    local positions={}
+    if type(db.lootPositions)=="table" then
+        for i=1,4 do
+            local p=db.lootPositions[i]
+            if type(p)=="table" and type(p.x)=="number" and type(p.y)=="number" and
+                p.x==p.x and p.y==p.y and math.abs(p.x)<=4000 and math.abs(p.y)<=4000 then
+                positions[i]={x=p.x,y=p.y}
+            end
+        end
+    end
+    db.lootPositions=positions
+    if db.presentation~="native" and db.presentation~="custom" and db.presentation~="none" then db.presentation="native" end
     if db.layout~="stack" and db.layout~="tabs" and db.layout~="windows" then db.layout="stack" end
     local ranges={closeAfter={0,300},scale={0.65,1.6},width={380,650},rowHeight={18,32},
         opacity={0.4,1},historyLimit={10,200},maxHeight={300,900},fontSize={10,18},x={-4000,4000},y={-4000,4000},
@@ -108,9 +120,9 @@ function A.SortedRows(r,db)
         if db.showPassed or p.state~=5 then rows[#rows+1]=p end
     end
     table.sort(rows,function(a,b)
-        if db.sort=="name" then return (a.playerName or "")<(b.playerName or "") end
         local ap,bp=priority[a.state] or 6,priority[b.state] or 6
         if ap~=bp then return ap<bp end
+        if db.sort=="name" then return (a.playerName or "")<(b.playerName or "") end
         if (a.roll or -1)~=(b.roll or -1) then return (a.roll or -1)>(b.roll or -1) end
         if (not not a.isWinner)~=(not not b.isWinner) then return not not a.isWinner end
         return (a.playerName or "")<(b.playerName or "")
