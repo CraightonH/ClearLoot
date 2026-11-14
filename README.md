@@ -2,7 +2,7 @@
 
 Native group-loot extensions and persistent roll history for **WoW Forever 1.60.1**, provisionally targeting Interface `16001`.
 
-**Status: 0.5.1 alpha.** The code has passed simulated model, history, betting, UI, and browser checks. It has not been tested inside a running Forever client. The browser previews show the loot/history interface using illustrative data; they are not in-game screenshots and do not demonstrate networked side bets.
+**Status: 0.6.0 alpha.** The code has passed simulated model, history, betting, UI, and browser checks. It has not been tested inside a running Forever client. The browser previews show the loot/history interface using illustrative data; they are not in-game screenshots and do not demonstrate networked side bets.
 
 ## Features
 
@@ -33,7 +33,7 @@ You can also build an addon-only ZIP:
 python3 scripts/package.py
 ```
 
-This writes `dist/ClearLoot-0.5.1-alpha.zip`. Extract it into `Interface/AddOns/`.
+This writes `dist/ClearLoot-0.6.0-alpha.zip`. Extract it into `Interface/AddOns/`.
 
 Drag the native item header, item icon, or any non-button area of the player
 table to move that item and its table together. Loot buttons retain their clicks. Each of the four loot slots remembers its
@@ -81,7 +81,7 @@ do not reproduce the native game textures or the attached-frame integration.
 | `/cloot history` | Open persistent drop history |
 | `/cloot stats` | Open character statistics and manual aliases |
 | `/cloot export` | Open selectable CSV text for copying |
-| `/cloot bets` | Open side-bet rules, live predictions, and the honor ledger |
+| `/cloot bets` | Open the side-bet ledger and rules |
 | `/cloot session` | Show the current session's live-panel history |
 | `/cloot clear` | Dismiss completed panels |
 | `/cloot native` | Immediately restore the default loot popups |
@@ -102,7 +102,13 @@ Data is kept in account-level `ClearLootDB` SavedVariables and shared by your ch
 
 ## Side bets: place a prediction and watch the pool
 
-Click **Bet** on an item, choose the player you predict will win, enter a stake, and press **Place bet**. That click records your bet immediately and joins the pool. Friends' predictions and the pool update as their notifications arrive.
+Each player's loot-table row has **1g / 5g / 10g** quick-bet buttons. Click an
+amount beside a player to place that prediction immediately in one click. Change
+**Middle bet** on the item panel to use a custom amount in the middle button;
+that amount is remembered. Your prediction, the live pool, and your result stay
+on the item panel. `/cloot bets` is only the ledger and rules; placing bets does
+not open a dedicated menu. The demo supports isolated sample bets without sending
+notifications or recording pledges.
 
 There is no manual hosting, peer-discovery prerequisite, confirmation/retry step, matching-settings setup, or five-second hosted window. ClearLoot elects a bettor to resolve the agreed pool automatically, and normal loot choices are never held. Only bettors need the addon.
 
@@ -148,7 +154,7 @@ Or use `make test LUA=lua5.1`. On Linux with Python and `liblua5.4.so.0` install
 python3 tests/run_lua.py tests/model.lua tests/history.lua tests/betting.lua tests/integration.lua
 ```
 
-The suites cover 16 model scenarios, 12 history scenarios, 28 asynchronous betting scenarios, and mocked addon integration. Betting checks include inclusive percentage boundaries, native timer validation, immediate placement, canonical bet sets, asynchronous joining, late notifications, automatic agreement and resolver failover, exact settlement, and 40-client synchronization. Mocked game bindings verify group-message routing, the player picker, one-step placement, live pool, normal loot choices without a hold, and local paid notes. GitHub Actions runs these against Lua 5.1 and 5.4 and verifies addon packaging.
+The suites cover 16 model scenarios, 12 history scenarios, 28 asynchronous betting scenarios, and mocked addon integration. Betting checks include inclusive percentage boundaries, native timer validation, immediate placement, canonical bet sets, asynchronous joining, late notifications, automatic agreement and resolver failover, exact settlement, and 40-client synchronization. Mocked game bindings verify group-message routing, inline amount editing, one-click row bets, live pool, normal loot choices without a hold, and local paid notes. GitHub Actions runs these against Lua 5.1 and 5.4 and verifies addon packaging.
 
 Optional browser checks:
 

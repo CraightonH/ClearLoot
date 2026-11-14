@@ -1,15 +1,18 @@
 # Side bets
 
-**Choose a player, enter a stake, and press Place bet.** That click is the participation signal. The prediction is recorded locally immediately, friends' bets appear as notifications arrive, and the pool total updates automatically.
+**Click an amount beside a player in the loot table.** That single click selects both your stake and prediction, and places the bet immediately. The prediction is recorded locally immediately, friends' bets appear as notifications arrive, and the pool total updates automatically.
 
 There is no host button, invitation, acceptance/retry step, matching-settings checklist, or hosted five-second window. Loot choices are never delayed. Only bettors need ClearLoot; a prediction target can use the default loot UI.
 
 ## In the client
 
-1. Click **Bet** on a real loot item, or open `/cloot bets`. Opening the view watches your friends' bets; it does not pledge anything.
-2. Pick the player you predict will win, enter the gold amount, and press **Place bet**.
-3. Watch the friends list and live pool update. You can close the view and roll on loot normally.
-4. Once the loot winner is known and the clients share the same bets, ClearLoot automatically resolves the pool. The view identifies the item winner and whether your prediction won; **Ledger** contains the honor-payment details.
+1. Find the player you predict will win in the attached loot table.
+2. Click **1g**, **5g**, or **10g** on that row. There is no picker, confirmation step, or dedicated placement menu.
+3. To change the middle amount, edit **Middle bet** on the item panel and press Enter. This amount is saved for future drops. Each character can make one prediction per item.
+4. Your prediction and the live pool stay on the panel. Buttons close after your bet or when the eligibility/time limits are reached. Normal loot controls keep working.
+5. Once the result is confirmed, the panel shows the loot winner and your prediction outcome. `/cloot bets` opens the optional ledger and rules, including the honor-payment details.
+
+`/cloot demo` includes clickable sample bets for checking this layout without a party. They use no network messages or persistent ledger entries. Demo sample buttons demonstrate placement independently of the real-roll betting gates.
 
 Bet placement does not require an enabled peer to have been discovered. A second or third bettor can place their prediction later without anyone reopening a round. One character gets one immutable prediction per item.
 
@@ -49,6 +52,6 @@ This is a cooperative design for friends. Remote submission facts are notificati
 
 ## Validation still needed
 
-Simulated checks cover local validation, immediate placement, asynchronous joining, simultaneous first bets, late notifications, automatic agreement/election, resolver failover, missing/reordered notifications, exact pool arithmetic, interrupted records, and 40 participating clients. Game-binding tests exercise the player picker, Place bet control, live pool, and normal loot buttons without a hold.
+Simulated checks cover local validation, immediate placement, asynchronous joining, simultaneous first bets, late notifications, automatic agreement/election, resolver failover, missing/reordered notifications, exact pool arithmetic, interrupted records, and 40 participating clients. Game-binding tests exercise per-player quick-bet buttons, inline custom stakes, live pool, cutoff and duplicate-click rejection, and normal loot buttons without a hold.
 
 Live two-client and raid testing in Forever remains necessary. Start with small honorary amounts and compare the friends list, pool total, item winner, prediction outcomes, and ledger on both clients. The browser previews currently show loot/history only; they are not an in-game render or a networked betting simulation.

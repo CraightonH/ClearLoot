@@ -68,68 +68,61 @@ function A.OpenBetRecord(round)
     content:SetHeight(math.max(y,100))
     f:Show()
 end
-function A.OpenBets(roll)
+function A.InlineBetState(r)
+    local state={visible=r.demo or A.bettingAvailable}
+    if not state.visible then return state end
+    if r.demo then
+        state.mine=r.demoBet; state.canBet=not r.finished and not r.dismissed and not r.demoBet
+        state.pool=r.demoBet and r.demoBet.stake or 0
+        state.reason=r.finished and "finished" or (r.demoBet and "duplicate" or nil)
+        return state
+    end
+    local context=A.betClient and A.betClient.byRoll[r]
+    state.record=context and context.record
+    state.pool=state.record and state.record.pool or 0
+    local guid=UnitGUID and UnitGUID("player")
+    for _,entry in ipairs(state.record and state.record.entries or {}) do
+        if entry.bettor==guid then state.mine=entry; break end
+    end
+    local snapshot=A.BetSnapshot(r); state.snapshot=snapshot
+    if state.mine then state.reason="duplicate"
+    elseif not snapshot then state.reason="data"
+    else
+        state.canBet,state.reason=M.CanBet({state=state.record and state.record.state or "OPEN",
+            percent=math.min(A.db.betPercent,M.PERCENT),cutoff=math.max(A.db.betCutoff,M.CUTOFF),
+            rosterKey=state.record and state.record.rosterKey or snapshot.rosterKey},snapshot)
+        if not snapshot.participants[guid] then state.canBet=false; state.reason="target" end
+    end
+    return state
+end
+function A.PlaceInlineBet(r,player,gold)
+    local stake=M.ParseGold(tostring(gold))
+    if not stake or stake>A.db.betMaxGold*10000 then r.inlineBetError=message("stake"); A.Render(); return false end
+    local state=A.InlineBetState(r)
+    if not state.canBet then r.inlineBetError=message(state.reason); A.Render(); return false end
+    local target=player.playerGUID or (r.demo and player.playerName)
+    local ok,reason
+    if r.demo and target then
+        r.demoBet={target=target,targetName=player.playerName,stake=stake}; ok=true
+    elseif A.bettingAvailable and target then ok,reason=A.betClient:Submit(r,target,stake)
+    else reason="target" end
+    r.inlineBetError=not ok and message(reason) or nil
+    A.Render(); return not not ok
+end
+function A.OpenBets()
     if not A.betWindow then
-        local f=panel(); A.betWindow=f; f:SetSize(760,650); f.page=1; f.view="live"; f.rows={}
-        text(f,15,16,-16,600):SetText("ClearLoot · optional side bets")
+        local f=panel(); A.betWindow=f; f:SetSize(760,650); f.page=1; f.view="ledger"; f.rows={}
+        text(f,15,16,-16,600):SetText("ClearLoot · side-bet ledger")
         button(f,"Close",65,680,-12,function() f:Hide() end)
-        text(f,12,16,-53,430):SetText("Choose a player, enter your stake, and place your bet.")
-        button(f,"Live rolls",85,456,-48,function() f.view="live"; A.RenderBets() end)
+        text(f,12,16,-53,430):SetText("Place bets directly beside players in the loot table.")
         button(f,"Ledger",75,546,-48,function() f.view="ledger"; A.RenderBets() end)
-        button(f,"Rules",75,626,-48,function() f.view=f.view=="rules" and "live" or "rules"; A.RenderBets() end)
-        f.live=CreateFrame("Frame",nil,f); f.live:SetAllPoints(); f.rules=CreateFrame("Frame",nil,f); f.rules:SetAllPoints()
+        button(f,"Rules",75,626,-48,function() f.view="rules"; A.RenderBets() end)
+        f.rules=CreateFrame("Frame",nil,f); f.rules:SetAllPoints()
         f.ledger=CreateFrame("Frame",nil,f); f.ledger:SetAllPoints()
-        f.item=text(f.live,13,48,-94,630); f.item:SetHeight(32)
-        local function move(offset)
-            local rolls={}; for _,r in ipairs(A.rolls) do if not r.demo then rolls[#rolls+1]=r end end
-            for i,r in ipairs(rolls) do if r==f.roll then f.roll=rolls[math.max(1,math.min(#rolls,i+offset))]; break end end
-            A.RenderBets()
-        end
-        button(f.live,"<",28,14,-92,function() move(-1) end); button(f.live,">",28,714,-92,function() move(1) end)
-        f.info=text(f.live,11,16,-133,720); f.info:SetHeight(46)
-        f.pool=text(f.live,14,16,-185,710)
-        text(f.live,12,16,-230,130):SetText("Predict loot winner:")
-        f.target=button(f.live,"Choose player",310,145,-224,function()
-            local menu=f.targetMenu
-            if menu:IsShown() then menu:Hide(); return end
-            for _,b in ipairs(menu.rows) do b:Hide() end
-            for i,guid in ipairs(f.targets or {}) do
-                local b=menu.rows[i]
-                if not b then b=button(menu.content,"",275,2,-(i-1)*26,function() end); menu.rows[i]=b end
-                b:SetText(f.participants[guid]); b:Show()
-                b:SetScript("OnClick",function() f.targetGUID=guid; menu:Hide(); A.RenderBets() end)
-            end
-            menu.content:SetHeight(math.max(1,#(f.targets or {})*26)); menu:Show()
-        end)
-        f.targetMenu=CreateFrame("Frame",nil,f,"BackdropTemplate"); f.targetMenu:SetSize(310,195)
-        f.targetMenu:SetPoint("TOPLEFT",f.target,"BOTTOMLEFT",0,-2); f.targetMenu:SetFrameStrata("TOOLTIP")
-        f.targetMenu:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8X8",edgeFile="Interface\\Buttons\\WHITE8X8",edgeSize=1})
-        f.targetMenu:SetBackdropColor(0.06,0.08,0.1,1); f.targetMenu:SetBackdropBorderColor(0.4,0.45,0.5,1)
-        local ts=CreateFrame("ScrollFrame",nil,f.targetMenu,"UIPanelScrollFrameTemplate")
-        ts:SetPoint("TOPLEFT",4,-4); ts:SetPoint("BOTTOMRIGHT",-25,4)
-        f.targetMenu.content=CreateFrame("Frame",nil,ts); f.targetMenu.content:SetWidth(280); ts:SetScrollChild(f.targetMenu.content)
-        f.targetMenu.rows={}; f.targetMenu:Hide()
-        text(f.live,12,16,-270,130):SetText("Stake in gold:")
-        f.stake=CreateFrame("EditBox",nil,f.live,"InputBoxTemplate"); f.stake:SetSize(110,24); f.stake:SetPoint("TOPLEFT",150,-264)
-        f.stake:SetAutoFocus(false); f.stake:SetMaxLetters(12); f.stake:SetText(tostring(A.db.betDefaultGold))
-        f.submit=button(f.live,"Place bet",160,280,-264,function()
-            local stake=M.ParseGold(f.stake:GetText())
-            if not stake then f.error="Enter a positive stake, up to four decimal gold places."
-            else local _,reason=A.betClient:Submit(f.roll,f.targetGUID,stake); f.error=message(reason) end
-            A.RenderBets()
-        end)
-        f.status=text(f.live,12,16,-306,720); f.status:SetHeight(42)
-        f.bookScroll=CreateFrame("ScrollFrame",nil,f.live,"UIPanelScrollFrameTemplate")
-        f.bookScroll:SetPoint("TOPLEFT",16,-359); f.bookScroll:SetPoint("BOTTOMRIGHT",-34,65)
-        f.bookContent=CreateFrame("Frame",nil,f.bookScroll); f.bookContent:SetWidth(700); f.bookScroll:SetScrollChild(f.bookContent)
-        f.book=text(f.bookContent,11,0,0,690); f.book:SetHeight(225)
-        f.book:SetJustifyV("TOP")
-        f.note=text(f,11,16,-601,720); f.note:SetHeight(38)
-        f.note:SetText("Placing a bet joins this item's pool. Friends' bets and the pool update automatically. Payments are on your honor; no gold moves and loot choices are never delayed.")
         local fields={{"betPercent","My maximum selected percentage (inclusive)",100,0,20},
             {"betCutoff","My minimum remaining seconds",145,10,30},
             {"betMaxGold","Maximum gold pledged per character",235,1,1000},
-            {"betDefaultGold","Default stake in gold",280,0.0001,1000}}
+            {"betDefaultGold","Middle quick-bet amount in gold",280,0.0001,1000}}
         for _,field in ipairs(fields) do
             local key,title,y,min,max=(table.unpack or unpack)(field)
             text(f.rules,12,20,-y,530):SetText(title)
@@ -158,63 +151,24 @@ function A.OpenBets(roll)
         f.scroll:SetPoint("TOPLEFT",16,-135); f.scroll:SetPoint("BOTTOMRIGHT",-34,70)
         f.content=CreateFrame("Frame",nil,f.scroll); f.content:SetWidth(700); f.scroll:SetScrollChild(f.content)
     end
-    local f=A.betWindow
-    if roll then f.roll=roll; f.view="live" end
-    if not f.roll then for _,r in ipairs(A.rolls) do if not r.demo and not r.finished then f.roll=r; break end end end
-    A.betClient:Watch(f.roll); f.targetMenu:Hide(); f:Show(); A.RenderBets()
+    A.betWindow:Show(); A.RenderBets()
 end
 function A.RenderBets()
     local f=A.betWindow; if not f then return end
-    f.live:SetShown(f.view=="live"); f.rules:SetShown(f.view=="rules"); f.ledger:SetShown(f.view=="ledger")
+    f.rules:SetShown(f.view=="rules"); f.ledger:SetShown(f.view=="ledger")
     if f.view=="rules" then return end
-    if f.view=="ledger" then
-        local records=A.db.betLedger.records; local pages=math.max(1,math.ceil(#records/40)); f.page=math.min(pages,f.page)
-        f.pageText:SetText(#records.." saved rounds · page "..f.page.."/"..pages.." · click for bets and honor payments")
-        for _,row in ipairs(f.rows) do row:Hide() end
-        local first=#records-(f.page-1)*40; local shown=0
-        for index=first,math.max(1,first-39),-1 do
-            local record=records[index]; if record then
-                shown=shown+1; local row=f.rows[shown]
-                if not row then row=CreateFrame("Button",nil,f.content); row.label=text(row,11,4,-5,680); row.label:SetHeight(35); f.rows[shown]=row end
-                row:Show(); row:SetSize(695,42); row:ClearAllPoints(); row:SetPoint("TOPLEFT",0,-(shown-1)*42)
-                row.label:SetText(A.RecordDate(record.timestamp).." · "..(record.itemName or "Item").." · "..(M.states[record.state] or record.state).."\n"..#record.entries.." accepted bets"..(record.reason and (" · "..message(record.reason)) or ""))
-                row:SetScript("OnClick",function() A.OpenBetRecord(record) end)
-            end
+    local records=A.db.betLedger.records; local pages=math.max(1,math.ceil(#records/40)); f.page=math.min(pages,f.page)
+    f.pageText:SetText(#records.." saved rounds · page "..f.page.."/"..pages.." · click for bets and honor payments")
+    for _,row in ipairs(f.rows) do row:Hide() end
+    local first=#records-(f.page-1)*40; local shown=0
+    for index=first,math.max(1,first-39),-1 do
+        local record=records[index]; if record then
+            shown=shown+1; local row=f.rows[shown]
+            if not row then row=CreateFrame("Button",nil,f.content); row.label=text(row,11,4,-5,680); row.label:SetHeight(35); f.rows[shown]=row end
+            row:Show(); row:SetSize(695,42); row:ClearAllPoints(); row:SetPoint("TOPLEFT",0,-(shown-1)*42)
+            row.label:SetText(A.RecordDate(record.timestamp).." · "..(record.itemName or "Item").." · "..(M.states[record.state] or record.state).."\n"..#record.entries.." accepted bets"..(record.reason and (" · "..message(record.reason)) or ""))
+            row:SetScript("OnClick",function() A.OpenBetRecord(record) end)
         end
-        f.content:SetHeight(math.max(1,shown*42)); return
     end
-    local r=f.roll; local context=r and A.betClient.byRoll[r]; local round=context and context.record
-    local snapshot=r and A.BetSnapshot(r)
-    f.item:SetText(r and (r.link or r.name or "Loading item") or "No current real loot roll. Demo rolls never accept side bets.")
-    f.info:SetText(not A.bettingAvailable and "This client does not expose the required group addon messaging API." or
-        (snapshot and string.format("Selected %d/%d (%.1f%%) · live timer %.1fs\nNew bets require <= %d%% selected and more than %ds remaining.",
-            snapshot.selected,snapshot.total,100*snapshot.selected/snapshot.total,(snapshot.leftMs or 0)/1000,
-            math.min(A.db.betPercent,M.PERCENT),math.max(A.db.betCutoff,M.CUTOFF)) or message("data")))
-    f.pool:SetText("Pool: "..M.Money(round and round.pool or 0).." · "..(round and #round.entries or 0).." bets")
-    local participants=round and round.participants or snapshot and snapshot.participants or {}
-    f.participants=participants; f.targets={}; for guid in pairs(participants) do f.targets[#f.targets+1]=guid end; table.sort(f.targets)
-    if not participants[f.targetGUID] then f.targetGUID=f.targets[1] end
-    f.target:SetText(participants[f.targetGUID] or "No eligible targets")
-    local mine
-    for _,e in ipairs(round and round.entries or {}) do if e.bettor==(UnitGUID and UnitGUID("player")) then mine=e end end
-    local can=snapshot and M.CanBet({state=round and round.state or "OPEN",percent=math.min(A.db.betPercent,M.PERCENT),
-        cutoff=math.max(A.db.betCutoff,M.CUTOFF),rosterKey=round and round.rosterKey or snapshot.rosterKey},snapshot)
-    f.submit:SetEnabled(A.bettingAvailable and not mine and not not can); f.submit:SetText(mine and "Bet placed" or "Place bet")
-    f.target:SetEnabled(not mine)
-    local status=mine and ("Your bet: "..M.Money(mine.stake).." on "..name(round,mine.target)) or "Place your bet to participate."
-    if round and round.reason then status=status.." · "..message(round.reason) end
-    local winner=round and round.winner or snapshot and snapshot.confirmed and snapshot.winner
-    if round and winner then
-        status="Item winner: "..name(round,winner)..(mine and (mine.target==winner and " · Your prediction won" or " · Your prediction lost") or "")
-        if not round.winner then status=status.." · Sharing the pool" end
-    end
-    if context and context.error then status=status.." · "..message(context.error) end
-    if f.error and f.error~="" then status=status.."\n"..f.error end
-    f.status:SetText(status)
-    local lines={"Friends' bets:"}
-    for i,e in ipairs(round and round.entries or {}) do
-        lines[#lines+1]=name(round,e.bettor).." → "..name(round,e.target).." · "..M.Money(e.stake)..(round.winner and (e.target==round.winner and " · WON" or " · LOST") or "")
-    end
-    if round and (round.state=="SETTLED" or round.state=="VOID") then lines[#lines+1]="Open Ledger → this round for the saved outcome and honor-payment notes." end
-    f.book:SetText(table.concat(lines,"\n")); f.book:SetHeight(math.max(30,#lines*20)); f.bookContent:SetHeight(math.max(30,#lines*20))
+    f.content:SetHeight(math.max(1,shown*42)); return
 end

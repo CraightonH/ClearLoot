@@ -146,9 +146,9 @@ function A.Demo()
     end
     A.historyView=false; A.Render()
     if A.demoTemplateWarning then
-        message("0.5.1: native dungeon-roll demo failed; see the error above. No fallback window was opened.")
+        message("0.6.0: native dungeon-roll demo failed; see the error above. No fallback window was opened.")
     else
-        message("0.5.1 dungeon-roll demo: Forever native frames and client layout; simulated choices/results. No real loot is created.")
+        message("0.6.0 dungeon-roll demo: Forever native frames and client layout; simulated choices/results. No real loot is created.")
     end
 end
 local elapsed=0

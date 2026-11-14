@@ -35,7 +35,7 @@ function frameMethods:GetChecked() return self.checked end
 function frameMethods:SetEnabled(v) self.enabled=v end
 function frameMethods:SetPoint(...) self.point={...} end
 local harmless={"SetFont","SetJustifyH","SetJustifyV","SetBackdrop","SetBackdropColor","SetBackdropBorderColor",
-    "SetAllPoints","SetTexture","SetStatusBarTexture","SetStatusBarColor","SetMinMaxValues","SetValue",
+    "HasFocus","SetNormalFontObject","SetHighlightFontObject","SetAllPoints","SetTexture","SetStatusBarTexture","SetStatusBarColor","SetMinMaxValues","SetValue",
     "SetFrameLevel","SetMovable","SetClampedToScreen","RegisterForDrag","StartMoving","StopMovingOrSizing","SetFrameStrata",
     "SetScrollChild","SetScale","ClearAllPoints","SetTextColor","SetAutoFocus","SetMaxLetters","ClearFocus",
     "RegisterEvent","UnregisterAllEvents","SetColorTexture","SetMultiLine","HighlightText","SetFocus"}
@@ -180,7 +180,7 @@ assert(not nativeRoll.nativeCard.rows[1].winner:IsShown())
 A.ApplyDrop(nativeRoll,{rollInfos={{playerName="You",isSelf=true,state=0,roll=44,isWinner=true},
     {playerName="Friend",state=3,roll=99}}},now)
 A.Render(); assert(nativeRoll.nativeCard.rows[1].winner:IsShown())
-assert(nativeRoll.nativeCard.rows[1].name.text:find("Winner:"))
+assert(nativeRoll.nativeCard.rows[1].name.text:find("You"))
 A.db.layout="stack"; GroupLootFrame1:Hide(); A.Render()
 assert(not nativeRoll.nativeAttached and A.window:IsShown(),"result must survive native frame hiding")
 assert(A.cards[1].tableOnly and A.cards[1].rows[1].winner:IsShown())
@@ -257,6 +257,11 @@ end
 dragged.card.scripts.OnDragStart(dragged.card); assert(dragged.clearLootDragging)
 dragged.card.scripts.OnDragStop(dragged.card); assert(not dragged.clearLootDragging)
 assert(dragged.LootButtonContainer.PassButton.scripts.OnClick,"native button click must remain intact")
+local demoLedgerBefore=#A.db.betLedger.records
+local demoPlayer=A.demoFrames[1].card.rows[1]
+demoPlayer.betButtons[1].scripts.OnClick()
+assert(A.demoFrames[1].roll.demoBet.stake==10000)
+assert(#A.db.betLedger.records==demoLedgerBefore and calls==before,"demo bets must stay local and unsaved")
 A.demoFrames[1].LootButtonContainer.PassButton.scripts.OnClick()
 A.demoFrames[2].LootButtonContainer.NeedButton.scripts.OnClick()
 A.demoFrames[3].LootButtonContainer.GreedButton.scripts.OnClick()
@@ -324,11 +329,8 @@ A.rolls={real}; A.InitBetting(); A.betClient:SetEnabled(true)
 real.started=now; real.duration=60; real.rows=rolls; real.status="Rolling"
 local nativeBetCard=A.MakeCard(UIParent)
 A.AttachTable(GroupLootFrame1,real,nativeBetCard,1)
-assert(nativeBetCard.bet:IsShown() and not nativeBetCard.pin,"native table must expose Bet without restoring Pin")
-assert(nativeBetCard.bet.point[2]==-36 and nativeBetCard.result.point[2]==-80,"Bet and result text must leave room for dismiss")
-local ledgerBeforeOpen=#A.db.betLedger.records
-nativeBetCard.bet.scripts.OnClick()
-assert(A.betWindow.roll==real and #A.db.betLedger.records==ledgerBeforeOpen,"Bet must open the matching item without placing a wager")
+assert(nativeBetCard.rows[1].betButtons[1]:IsShown() and not nativeBetCard.pin)
+assert(not nativeBetCard.bet,"loot panels must not open a separate betting menu")
 local snapshot=A.BetSnapshot(real)
 assert(snapshot.total==5 and snapshot.selected==1 and snapshot.leftMs==59999)
 rolls[3].state=5; assert(A.BetSnapshot(real).selected==2); rolls[3].state=4
@@ -336,12 +338,18 @@ local bf=A.betEventFrame
 local notification=table.concat({"BET","2",snapshot.itemKey,snapshot.rosterKey,snapshot.deadline,"peer","P3",100,1,59999,20,10},"|")
 bf.scripts.OnEvent(bf,"CHAT_MSG_ADDON","ClearLootBets",notification,"WHISPER","Player2-Realm")
 assert(not A.betClient.byRoll[real],"only group distributions are accepted")
-A.OpenBets(real)
-A.betWindow.target.scripts.OnClick()
-A.betWindow.targetMenu.rows[3].scripts.OnClick()
-assert(A.betWindow.targetGUID=="P3")
-A.betWindow.stake:SetText("0.1")
-A.betWindow.submit.scripts.OnClick()
+A.betWindow:Hide()
+nativeBetCard.quickStake:SetText("0.1")
+nativeBetCard.quickStake.scripts.OnEnterPressed()
+assert(A.db.betDefaultGold==0.1,"inline amount field must update the middle stake")
+A.UpdateCard(nativeBetCard,real)
+local targetRow
+for _,row in ipairs(nativeBetCard.rows) do if row.player.playerGUID=="P3" then targetRow=row end end
+assert(targetRow and targetRow.betButtons[2].enabled,"eligible players need a one-click stake button")
+local ledgerBeforeClick=#A.db.betLedger.records
+targetRow.betButtons[2].scripts.OnClick()
+assert(not A.betWindow:IsShown(),"inline placement must not open a betting menu")
+assert(#A.db.betLedger.records==ledgerBeforeClick+1,"one click must immediately place exactly one bet")
 local betRound=A.betClient.byRoll[real].record
 assert(betRound.pool==1000 and #betRound.entries==1)
 bf.scripts.OnEvent(bf,"CHAT_MSG_ADDON","ClearLootBets",notification,"PARTY","Player2-Realm")
@@ -350,8 +358,26 @@ local previousCalls=calls
 A.Choose(real,1); assert(calls==previousCalls+1,"betting must not delay normal loot choices")
 nativeLeft=54000; A.betClient:Tick()
 A.OpenBets(real); A.RenderBets()
-assert(not A.betWindow.host and not A.betWindow.enable,"betting must not require hosting or participation controls")
-assert(A.betWindow.submit.text=="Bet placed" and A.betWindow.pool.text:find("2 bets",1,true))
+assert(not A.betWindow.submit and not A.betWindow.target,"ledger must not contain a separate bet placement flow")
+A.UpdateCard(nativeBetCard,real)
+assert(nativeBetCard.result.text:find("Player3",1,true))
+assert(not targetRow.betButtons[1].enabled,"an existing prediction must disable further bets")
+local existingPool=betRound.pool
+targetRow.betButtons[1].scripts.OnClick()
+assert(betRound.pool==existingPool,"inline callbacks must reject duplicate bets")
+local unbet=A.NewRoll(100,"item:43",now,60,now)
+unbet.key="other"; unbet.encounterID=1; unbet.lootListKey=100; unbet.rows=rolls
+local accepted=#A.db.betLedger.records
+nativeLeft=10000; A.UpdateCard(nativeBetCard,unbet)
+assert(not nativeBetCard.rows[1].betButtons[1].enabled,"cutoff must disable inline actions")
+nativeBetCard.rows[1].betButtons[1].scripts.OnClick()
+assert(#A.db.betLedger.records==accepted,"cutoff must also reject stale clicks")
+nativeLeft=59999; rolls[3].state=5
+A.UpdateCard(nativeBetCard,unbet)
+assert(not nativeBetCard.rows[1].betButtons[1].enabled,"selection threshold must disable inline actions")
+rolls[3].state=4
+assert(not A.PlaceInlineBet(unbet,rolls[3],A.db.betMaxGold+1))
+assert(#A.db.betLedger.records==accepted,"oversized pledges must not enter the ledger")
 for _,packet in ipairs(sent) do assert(packet[1]=="ClearLootBets" and packet[3]=="PARTY" and #packet[2]<=255) end
 local ledgerSnapshot={total=2,selected=0,leftMs=60000,participants=participants,
     rosterKey=A.BetModel.RosterKey(participants),itemKey="item"}

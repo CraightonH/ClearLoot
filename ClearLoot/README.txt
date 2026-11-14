@@ -1,4 +1,4 @@
-ClearLoot 0.5.1-alpha
+ClearLoot 0.6.0-alpha
 
 A native group-loot extension targeting WoW Forever 1.60.1 (Interface 16001).
 The exact client build has not been confirmed. This is an alpha, checked with
@@ -15,7 +15,7 @@ INSTALL
 5. Run /cloot for settings. If you want the default popups back, /cloot native
    restores them immediately and saves that preference.
 
-NATIVE PRESENTATION (0.5.1)
+NATIVE PRESENTATION (0.6.0)
 
 Settings are under Options > AddOns > ClearLoot; /cloot opens that category.
 The default mode extends Blizzard's original loot frames with a player table.
@@ -152,7 +152,7 @@ COMMANDS
 /cloot history      Open persistent drop history
 /cloot stats        Open player statistics and manual alt aliases
 /cloot export       Copy retained raw drop/participant history as CSV
-/cloot bets         Optional side-bet rules, predictions, and honor ledger
+/cloot bets         Side-bet honor ledger and rules
 /cloot session      Toggle the current live-panel session view
 /cloot clear        Dismiss completed results; leave live items alone
 /cloot native       Restore default loot popups
@@ -160,9 +160,11 @@ COMMANDS
 
 SIDE BETS: PLACE A PREDICTION AND WATCH THE POOL
 
-Click Bet on an item, choose the predicted loot winner, enter a stake, and Place
-bet. That click records the bet immediately and joins the pool. Friends' bets and
-the pool update as their notifications arrive. No manual host, invitation,
+Click 1g, 5g, or 10g beside a player in the loot table to immediately bet that
+amount on that player. Edit Middle bet directly on the item panel to customize
+the middle button. Your prediction and pool remain on the panel. /cloot bets
+opens only the ledger and rules; there is no separate betting menu. Demo bets
+are local simulations and never enter the ledger or addon messaging. No manual host, invitation,
 confirmation/retry step, matched settings, or five-second hosted window is needed.
 Loot choices are never delayed. A bettor resolves the shared pool automatically.
 

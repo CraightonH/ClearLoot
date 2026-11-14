@@ -84,7 +84,7 @@ local function makeDemoFrame(index)
     local ok,f=pcall(CreateFrame,"Frame","ClearLootDemoLootFrame"..index,UIParent,"ClearLootDemoLootFrameTemplate")
     if not ok or not f or not f.IconFrame or not f.Name or not f.Timer or not f.LootButtonContainer then
         if not A.demoTemplateWarning then
-            print("ClearLoot 0.5.1: native dungeon-roll demo could not load. Restart the client to load Demo.xml. "..tostring(ok and "Missing Forever loot frame fields" or f))
+            print("ClearLoot 0.6.0: native dungeon-roll demo could not load. Restart the client to load Demo.xml. "..tostring(ok and "Missing Forever loot frame fields" or f))
             A.demoTemplateWarning=true
         end
         if ok and f then f:Hide() end
@@ -130,7 +130,7 @@ function A.RenderNativeDemo()
     if not hasDemo or A.demoTemplateWarning then hideUnused(); return end
     if not GroupLootContainer_AddFrame or not GroupLootContainer_Update then
         A.demoTemplateWarning=true
-        print("ClearLoot 0.5.1: this client has no native loot container layout functions; demo stopped.")
+        print("ClearLoot 0.6.0: this client has no native loot container layout functions; demo stopped.")
         return
     end
     local visible={}; local height=0; local tableHeight=0
