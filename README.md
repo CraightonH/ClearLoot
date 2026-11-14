@@ -1,16 +1,18 @@
 # ClearLoot
 
-Compact group-loot panels and persistent roll history for **WoW Forever 1.60.1**, provisionally targeting Interface `16001`.
+Native group-loot extensions and persistent roll history for **WoW Forever 1.60.1**, provisionally targeting Interface `16001`.
 
-**Status: 0.3.0 alpha.** The code has passed simulated model, history, UI, and browser checks. It has not been tested inside a running Forever client. The browser previews show the intended interface using illustrative data; they are not in-game screenshots.
+**Status: 0.3.6 alpha.** The code has passed simulated model, history, UI, and browser checks. It has not been tested inside a running Forever client. The browser previews show the intended interface using illustrative data; they are not in-game screenshots.
 
 ## Features
 
-- Need, Greed, and Pass controls with the party's choices and roll numbers directly underneath each item.
-- Compact panels by default, with larger panels, tabs, or separate windows available in settings.
+- Blizzard's original loot controls, with a matching player/choice/roll table attached underneath.
+- Confirmed winners highlighted across the entire row in gold; results remain available after the native popup closes.
+- Settings under **Options → AddOns → ClearLoot**; `/cloot` opens the same category.
+- Optional standalone panels, tabs, or separate windows in settings. Live native extensions follow the game's loot-frame layout.
 - Need above Greed, then Pass, with separators between choice groups and undecided players last. Transmog appears between Need and Greed when offered by the client.
 - A yellow bar showing how many players have chosen, turning green once all recorded players have chosen. The server may still be resolving the winner.
-- Explicit win, loss, pass, all-pass, and unconfirmed results; configurable closing, hover hold, and pinning.
+- Explicit win, loss, pass, all-pass, and unconfirmed results; configurable closing, and hover hold.
 - Persistent drop history with UTC timestamps, item, source, participant choices, rolls, and confirmed winner.
 - Per-character statistics: contested win rate, expected wins, win/loss streaks, solo wins, and total items won.
 - Manual alt/account labels, date and choice-tier filters, a searchable drop ledger, and CSV copying.
@@ -21,7 +23,8 @@ Compact group-loot panels and persistent roll history for **WoW Forever 1.60.1**
 2. Copy the inner `ClearLoot/` directory into the Forever client's `Interface/AddOns/` directory.
 3. Confirm the resulting path is `Interface/AddOns/ClearLoot/ClearLoot.toc`.
 4. Enable ClearLoot in the character selection AddOns list. Disable other group-loot replacements, including BetterGroupLoot, while evaluating it.
-5. Run `/cloot demo` to preview three simulated rolls, then `/cloot` for settings.
+5. Run `/cloot` for the game's settings category. The default presentation is **Extend Blizzard loot frames**.
+6. Restart the client after updating, then run `/cloot demo` to show three Forever-native loot previews with attached tables. Need, Greed, and Pass are simulated; results and winner highlights appear after about ten seconds. No party is needed.
 
 You can also build an addon-only ZIP:
 
@@ -29,7 +32,44 @@ You can also build an addon-only ZIP:
 python3 scripts/package.py
 ```
 
-This writes `dist/ClearLoot-0.3.0-alpha.zip`. Extract it into `Interface/AddOns/`.
+This writes `dist/ClearLoot-0.3.6-alpha.zip`. Extract it into `Interface/AddOns/`.
+
+Drag the native item header, item icon, or any non-button area of the player
+table to move that item and its table together. Loot buttons retain their clicks. Each of the four loot slots remembers its
+position for both demo and live rolls. **Lock window position** disables dragging;
+**Advanced → Reset position** clears the saved locations. Pin controls are removed.
+Need stays above Greed, then Pass, with waiting players last. Name sorting applies
+within choice tiers and never changes that group order.
+
+Confirmed personal wins pulse green around the item header and player table;
+confirmed losses pulse red. Three pulses settle into a quieter outline until the
+result closes. Passes and unconfirmed results have no win/loss glow.
+
+## Native presentation
+
+ClearLoot attaches a table to each visible `GroupLootFrame` using its `rollID`.
+Blizzard keeps ownership of the item header, loot buttons, countdown, and binding
+confirmations. Native container spacing grows to accommodate the tables and is
+restored when the extensions are disabled. Spacing changes wait until combat ends.
+When Blizzard hides or recycles a popup, that roll's table moves into ClearLoot's
+result window and follows the configured result timeout. Winners are highlighted
+only after confirmation; a visible leading roll does not count as a winner.
+
+Settings also offer **Standalone ClearLoot panels** and **Blizzard UI only**.
+`/cloot native` selects Blizzard UI only immediately. History collection continues.
+`/cloot demo` creates addon-owned instances inheriting Blizzard's
+`MKBGroupLootFrameTemplate`. They use Forever's nested `LootButtonContainer`, the same table attachment
+function as live rolls, and Blizzard's `GroupLootContainer_AddFrame` layout
+function with an independent container. Item data, choices, and server outcomes
+are simulated; the addon cannot create a server-side dungeon drop. Missing
+native templates report an error and stop the demo without a standalone fallback. The native layout and
+textures are visible without a party; no live loot APIs or statistics are used.
+Preview frames remain through the result timeout and can be dismissed.
+Running the demo again resets it. Real drops still need separate validation for
+server events, binding confirmations, and native frame recycling.
+
+The standalone browser previews illustrate the earlier standalone layout; they
+do not reproduce the native game textures or the attached-frame integration.
 
 ## Commands
 
@@ -91,7 +131,7 @@ Or use `make test LUA=lua5.1`. On Linux with Python and `liblua5.4.so.0` install
 python3 tests/run_lua.py tests/model.lua tests/history.lua tests/integration.lua
 ```
 
-The suites cover 14 model scenarios, 12 history scenarios, and mocked addon integration, including choice progress, group sorting, duplicate-item ambiguity, late results, aliases, retention, and CSV escaping. GitHub Actions runs these against Lua 5.1 and 5.4 and verifies addon packaging.
+The suites cover 16 model scenarios, 12 history scenarios, and mocked addon integration, including choice progress, group sorting, duplicate-item ambiguity, late results, aliases, retention, and CSV escaping. GitHub Actions runs these against Lua 5.1 and 5.4 and verifies addon packaging.
 
 Optional browser checks:
 
@@ -123,7 +163,8 @@ The complete usage notes and source references are in [ClearLoot/README.txt](Cle
 | --- | --- |
 | `ClearLoot/Model.lua` | Roll state, matching, sorting, completion, and close timing |
 | `ClearLoot/History.lua` | Persistent records, identities, aliases, statistics, and CSV |
-| `ClearLoot/UI.lua` | Loot panels and settings |
+| `ClearLoot/UI.lua` | Loot tables, optional panels, and registered game settings |
+| `ClearLoot/NativeUI.lua` | Native-frame attachment, pooling, and container spacing |
 | `ClearLoot/StatsUI.lua` | History, statistics, detail, and CSV windows |
 | `ClearLoot/Core.lua` | Game events and native loot UI integration |
 | `tests/` | Model, history, integration, and browser checks |

@@ -48,7 +48,7 @@ end
 -- presentation, and restore it immediately when replacement is disabled.
 function A.ApplyNative()
     local gamepad=InputUtil and InputUtil.IsGamepadUIEnabled and InputUtil.IsGamepadUIEnabled()
-    local hide=compatible and A.db and A.db.replaceNative and not gamepad
+    local hide=compatible and A.db and A.db.presentation=="custom" and A.db.replaceNative and not gamepad
     local function visit(frame,conceal)
         if not frame then return end
         if conceal then
@@ -75,6 +75,7 @@ function A.ApplyNative()
 end
 function A.Choose(r,kind)
     if r.demo then
+        if r.finished or r.dismissed or r.choice then return end
         r.choice=kind
         local map={[0]=5,[1]=0,[2]=3,[3]=3,[4]=2}
         r.rows[1].state=map[kind]
@@ -115,12 +116,14 @@ local function startRoll(id,duration)
     C_Timer.After(0.6,function() A.RefreshHistory(); A.Render(); A.ApplyNative() end)
 end
 function A.Demo()
+    A.demoGeneration=(A.demoGeneration or 0)+1
+    local generation=A.demoGeneration
     for i=#A.rolls,1,-1 do if A.rolls[i].demo then table.remove(A.rolls,i) end end
     local samples={{"Emberstone Staff","Interface\\Icons\\INV_Staff_13"},
         {"Cobalt Ring","Interface\\Icons\\INV_Jewelry_Ring_03"},
         {"Gilded Mantle","Interface\\Icons\\INV_Shoulder_02"}}
     for i,s in ipairs(samples) do
-        local r=A.NewRoll(-i,nil,GetTime(),60,nil); r.name=s[1]; r.texture=s[2]; r.demo=true
+        local r=A.NewRoll(-i,nil,GetTime(),60,nil); r.name=s[1]; r.texture=s[2]; r.demo=true; r.nativeDemo=true
         r.allowed={[0]=true,[1]=true,[2]=true}
         r.rows={{playerName="You",isSelf=true,playerClass="MAGE",state=4},
             {playerName="Thorn",playerClass="WARRIOR",state=0,roll=87},
@@ -130,6 +133,7 @@ function A.Demo()
         r.waiting=2; r.match=nil
         A.rolls[#A.rolls+1]=r
         C_Timer.After(8+i,function()
+            if generation~=A.demoGeneration then return end
             local d={rollInfos=A.Copy(r.rows)}
             d.rollInfos[1].state=({[0]=5,[1]=0,[2]=3,[3]=3,[4]=2})[r.choice] or 0
             if r.choice==0 then d.rollInfos[1].roll=nil
@@ -141,7 +145,11 @@ function A.Demo()
         end)
     end
     A.historyView=false; A.Render()
-    message("Preview: three simulated items. Results resolve in about ten seconds.")
+    if A.demoTemplateWarning then
+        message("0.3.6: native dungeon-roll demo failed; see the error above. No fallback window was opened.")
+    else
+        message("0.3.6 dungeon-roll demo: Forever native frames and client layout; simulated choices/results. No real loot is created.")
+    end
 end
 local elapsed=0
 events:SetScript("OnUpdate",function(_,dt)
@@ -184,6 +192,8 @@ events:SetScript("OnEvent",function(_,event,...)
             C_LootHistory.GetSortedDropsForEncounter and C_LootHistory.GetSortedInfoForDrop and C_LootHistory.GetLootHistoryTime and
             GetLootRollItemInfo and GetLootRollItemLink and RollOnLoot
         A.BuildUI()
+        A.RegisterSettings()
+        A.InitNativeUI()
         if compatible then
             for _,e in ipairs({"START_LOOT_ROLL","CANCEL_LOOT_ROLL","CANCEL_ALL_LOOT_ROLLS",
                 "LOOT_HISTORY_UPDATE_DROP","LOOT_HISTORY_UPDATE_ENCOUNTER","LOOT_HISTORY_CLEAR_HISTORY"}) do
@@ -207,7 +217,7 @@ events:SetScript("OnEvent",function(_,event,...)
             elseif cmd=="stats" then A.OpenHistory("players")
             elseif cmd=="export" then A.OpenExport()
             elseif cmd=="session" then A.historyView=not A.historyView; A.Render()
-            elseif cmd=="native" then A.db.replaceNative=false; A.ApplyNative(); message("Default loot popups restored.")
+            elseif cmd=="native" then A.db.presentation="none"; A.db.replaceNative=false; A.ApplyNative(); A.Render(); message("Default loot popups restored.")
             elseif cmd=="clear" then
                 for _,r in ipairs(A.rolls) do if r.finished then r.dismissed=true; r.pinned=false end end; A.Render()
             else A.OpenSettings() end

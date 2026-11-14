@@ -1,6 +1,6 @@
-ClearLoot 0.3.0-alpha
+ClearLoot 0.3.6-alpha
 
-A standalone group-loot addon targeting WoW Forever 1.60.1 (Interface 16001).
+A native group-loot extension targeting WoW Forever 1.60.1 (Interface 16001).
 The exact client build has not been confirmed. This is an alpha, checked with
 simulated WoW APIs, not tested inside a running game client.
 
@@ -14,6 +14,40 @@ INSTALL
 4. Enter the game and run /cloot demo. No party is required.
 5. Run /cloot for settings. If you want the default popups back, /cloot native
    restores them immediately and saves that preference.
+
+NATIVE PRESENTATION (0.3.6)
+
+Settings are under Options > AddOns > ClearLoot; /cloot opens that category.
+The default mode extends Blizzard's original loot frames with a player table.
+The native item header, buttons, timer, and binding confirmations stay in use.
+A confirmed winner receives a full gold row highlight. When the native popup
+closes or is reused, its table moves to the result window until the configured
+timeout. Native spacing expands for tables and restores when disabled; spacing
+changes defer during combat. Standalone panels remain optional in settings.
+/cloot native selects Blizzard UI only. History collection continues.
+Restart the client after updating to load the corrected XML template.
+/cloot demo uses Forever's MKBGroupLootFrameTemplate, its LootButtonContainer,
+and Blizzard's GroupLootContainer_AddFrame layout in an independent container
+with the same attached tables. Need/Greed/Pass simulate choices; results resolve
+in about ten seconds. Preview scripts never submit real rolls or save statistics.
+Run the command again to reset the preview. Dismissal works as usual.
+The addon cannot create a server-side dungeon drop or inject server events.
+Missing native templates report an error; there is no standalone fallback.
+Use a real party drop to test server events, binding prompts, and frame reuse.
+The browser previews still illustrate the earlier standalone layout.
+
+Drag the native item header, item icon, or player table to move an individual
+native loot panel and its table. Loot buttons keep their normal click actions. The four slot positions are shared by demo and live rolls and
+saved across reloads. Lock window position disables dragging. Advanced > Reset
+position clears the saved slots. There is no Pin button.
+Need always precedes Greed, then Pass, then Waiting. Name sorting stays within
+choice tiers. Transmog, when offered, sits between Need and Greed.
+
+Confirmed personal wins pulse green around the whole loot panel; losses pulse
+red. Three pulses fade to a quieter outline until the result closes. Passes,
+all-pass outcomes, and unknown results do not trigger win/loss effects.
+
+The remaining panel/layout notes apply to optional standalone mode.
 
 USE
 
@@ -35,7 +69,7 @@ Default player sorting groups Need above Greed, then Pass, with undecided player
 last. Transmog, when applicable, sits between Need and Greed. Roll numbers sort
 descending within each roll type. Group boundaries have horizontal separators
 and a small gap. Winners are marked without moving them above higher-priority
-choice groups. Advanced settings can disable separators or sort by name.
+choice groups. Advanced settings can disable separators or sort names within each choice tier.
 Blizzard still handles binding confirmations; the addon never confirms them
 automatically. A choice is considered confirmed after history or confirmation
 reports it. The addon never rolls automatically on real items.
@@ -51,11 +85,11 @@ highest numeric roll, missing win toast, or expired timer is never treated as
 proof of losing. A Greed 99 can lose to a Need 2.
 
 Panels stay through the roll and for 20 seconds after a confirmed result.
-Hovering postpones closing; Pin keeps an item open indefinitely. Set the result
+Hovering postpones closing. Set the result
 timeout to 0 to keep all results until dismissed. The live-panel session view
 resets on reload. Persistent drop history is separate and survives normal
 logout/reload through account-level ClearLootDB SavedVariables.
-Pinned and live panels are not evicted by the session panel limit.
+Live panels are not evicted by the session panel limit.
 
 PERSISTENT HISTORY AND STATISTICS
 
@@ -155,7 +189,7 @@ Before treating this as ready for regular play, validate on your actual client:
 * Reload during an active roll; confirm native controls remain available.
 * /cloot native restores native popups and mouse input.
 
-Validation delivered with this alpha: 14 model scenarios, 12 persistent-history
+Validation delivered with this alpha: 16 model scenarios, 12 persistent-history
 scenarios, and a mocked runtime
 integration check exercising UI loading, controls, all layouts, native restore,
 duplicates, unknown outcomes, demo isolation, compact height, group separators,

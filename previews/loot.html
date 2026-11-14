@@ -86,11 +86,11 @@
  const saved=window.openai?.widgetState?.modelContent?.compactPreferences;
  if(saved)Object.assign(prefs,saved);
  const makeItems=()=>[
-  {id:0,name:'World-Ravager Waistguard',icon:'shield',choice:null,result:null,pinned:false,closed:false,
+  {id:0,name:'World-Ravager Waistguard',icon:'shield',choice:null,result:null,closed:false,
    rows:[['You','Waiting',null],['Thorn','Need',87],['Mira','Greed',99],['Bram','Pass',null],['Liora','Waiting',null]]},
-  {id:1,name:'Band of the Sargerite Smith',icon:'gem',choice:'Greed',result:null,pinned:false,closed:false,
+  {id:1,name:'Band of the Sargerite Smith',icon:'gem',choice:'Greed',result:null,closed:false,
    rows:[['You','Greed',73],['Thorn','Waiting',null],['Mira','Need',61],['Bram','Greed',92],['Liora','Pass',null]]},
-  {id:2,name:'Tarratus Keystone',icon:'sparkles',choice:'Need',result:'You lost',winner:'Liora',winType:'Need',winRoll:91,pinned:false,closed:false,
+  {id:2,name:'Tarratus Keystone',icon:'sparkles',choice:'Need',result:'You lost',winner:'Liora',winType:'Need',winRoll:91,closed:false,
    rows:[['You','Need',64],['Thorn','Greed',87],['Mira','Pass',null],['Bram','Pass',null],['Liora','Need',91]]}
  ];
  let items=makeItems(),settings=false,history=false,selected=0,hovered=false;
@@ -111,7 +111,7 @@
    <div class="cl-header"><div class="cl-icon"><i data-lucide="${item.icon}" aria-hidden="true"></i></div><div><div class="cl-name" data-tooltip="${esc(item.name)}">${esc(item.name)}</div><div class="cl-meta">${p.chosen}/${p.total} chosen${complete?' · Finished':p.full?' · Resolving':' · 38s'}</div></div><div class="cl-actions"><button class="cl-need" data-choice="Need" data-id="${item.id}" ${item.choice||complete?'disabled':''}>Need</button><button data-choice="Pass" data-id="${item.id}" ${item.choice||complete?'disabled':''}>Pass</button><button class="cl-greed" data-choice="Greed" data-id="${item.id}" ${item.choice||complete?'disabled':''}>Greed</button></div></div>
    <div class="cl-bar" data-complete="${p.full}" role="progressbar" aria-label="Players who have chosen for ${esc(item.name)}" aria-valuemin="0" aria-valuemax="${p.total}" aria-valuenow="${p.chosen}"><div class="cl-bar-fill" style="width:${p.total?p.chosen/p.total*100:0}%"></div></div>
    <table aria-label="${esc(item.name)} party rolls"><thead><tr><th>Player</th><th>Choice</th><th>Roll</th></tr></thead><tbody>${table}</tbody></table>
-   <div class="cl-result"><span class="cl-result-text" aria-live="polite">${status}</span><button data-pin="${item.id}" aria-pressed="${item.pinned}">${item.pinned?'Unpin':'Pin'}</button>${complete?`<button data-dismiss="${item.id}" aria-label="Dismiss ${esc(item.name)} result">×</button>`:''}</div>
+   <div class="cl-result"><span class="cl-result-text" aria-live="polite">${status}</span>${complete?`<button data-dismiss="${item.id}" aria-label="Dismiss ${esc(item.name)} result">×</button>`:''}</div>
   </article>`;
  }
  function render(){
@@ -130,8 +130,8 @@
  }
  function schedule(item){
   clearTimeout(item.timer);
-  if(!prefs.closeAfter||item.pinned)return;
-  item.timer=setTimeout(()=>{if(prefs.pauseHover&&hovered){schedule(item);return;}if(!item.pinned){item.closed=true;render();}},prefs.closeAfter*1000);
+  if(!prefs.closeAfter)return;
+  item.timer=setTimeout(()=>{if(prefs.pauseHover&&hovered){schedule(item);return;}item.closed=true;render();},prefs.closeAfter*1000);
  }
  app.addEventListener('pointerenter',()=>hovered=true);app.addEventListener('pointerleave',()=>hovered=false);
  app.addEventListener('change',event=>{
@@ -142,7 +142,6 @@
  app.addEventListener('click',event=>{
   const b=event.target.closest('button');if(!b)return;
   if(b.dataset.choice){const i=items[Number(b.dataset.id)];i.choice=b.dataset.choice;i.rows[0][1]=i.choice;i.rows[0][2]=i.choice==='Pass'?null:64;}
-  if(b.dataset.pin!==undefined){const i=items[Number(b.dataset.pin)];i.pinned=!i.pinned;if(i.result)schedule(i);}
   if(b.dataset.dismiss!==undefined)items[Number(b.dataset.dismiss)].closed=true;
   if(b.dataset.tab!==undefined)selected=Number(b.dataset.tab);
   if(b.dataset.action==='history')history=!history;

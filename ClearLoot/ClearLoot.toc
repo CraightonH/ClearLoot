@@ -2,10 +2,12 @@
 ## Title: ClearLoot
 ## Notes: Per-item group loot decisions, player rolls and explicit results.
 ## Author: ClearLoot contributors
-## Version: 0.3.0-alpha
+## Version: 0.3.6-alpha
 ## SavedVariables: ClearLootDB
 Model.lua
 History.lua
 UI.lua
 StatsUI.lua
+Demo.xml
+NativeUI.lua
 Core.lua
